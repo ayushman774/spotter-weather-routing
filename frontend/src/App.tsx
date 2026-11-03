@@ -29,6 +29,7 @@ import {
 } from "react-icons/fi";
 import "./App.css";
 import RouteMap from "./components/RouteMap";
+import CheckpointTimeline from "./components/CheckpointTimeline";
 import SpotlightCard from "./components/reactbits/SpotlightCard";
 import BlurText from "./components/reactbits/BlurText";
 
@@ -671,6 +672,13 @@ function App() {
                   </p>
                 )}
               </section>
+            )}
+            {result && selected && (
+              <CheckpointTimeline
+                key={selected.id}
+                checkpoints={selected.checkpoints ?? []}
+                routeLabel={`Route ${selected.safety_rank ?? result.routes.indexOf(selected) + 1}`}
+              />
             )}
             <div className="bottom-info">
               <SpotlightCard
