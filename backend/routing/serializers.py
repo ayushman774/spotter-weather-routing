@@ -7,6 +7,7 @@ class RoutePlanSerializer(serializers.Serializer):
     destination = serializers.CharField(max_length=200)
     departure_time = serializers.DateTimeField()
     load_weight_lb = serializers.FloatField(min_value=0)
+    assess_weather = serializers.BooleanField(default=False)
     checkpoint_interval_miles = serializers.ChoiceField(
         choices=[10, 25, 50],
         default=25,
