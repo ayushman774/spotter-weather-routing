@@ -5,7 +5,11 @@ from unittest.mock import patch
 from routing.services.openrouteservice import Location
 from routing.services.risk import WeatherConditions
 from routing.services.weather import CheckpointForecast, WeatherProviderError
-from routing.tests.test_route_api import make_request
+from routing.tests.test_route_api import (
+    make_request,
+    request_data,
+    route_feature,
+)
 
 
 def setup_routes(route_feature, count=2):
