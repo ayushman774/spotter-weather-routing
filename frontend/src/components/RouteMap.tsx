@@ -56,11 +56,14 @@ export default function RouteMap({
   const markers = useRef<maplibregl.Marker[]>([]);
   const checkpointMarkers = useRef<maplibregl.Marker[]>([]);
   const checkpointSelectRef = useRef(onCheckpointSelect);
-  checkpointSelectRef.current = onCheckpointSelect;
   const routesRef = useRef(routes);
-  selectedRef.current = selectedId;
-  selectRef.current = onSelect;
-  routesRef.current = routes;
+
+  useEffect(() => {
+    checkpointSelectRef.current = onCheckpointSelect;
+    selectedRef.current = selectedId;
+    selectRef.current = onSelect;
+    routesRef.current = routes;
+  }, [onCheckpointSelect, selectedId, onSelect, routes]);
 
   useEffect(() => {
     if (!container.current) return;
