@@ -204,7 +204,15 @@ function App() {
               <span className="eyebrow-line" /> COMMAND CENTER{" "}
               <span className="eyebrow-index">01 / PLAN</span>
             </div>
-            <h1 className="animated-headline"><BlurText text="Every mile." delay={110} trigger="load" /><BlurText text="More certain." delay={110} trigger="load" className="headline-accent" /></h1>
+            <h1 className="animated-headline">
+              <BlurText text="Every mile." delay={110} trigger="load" />
+              <BlurText
+                text="More certain."
+                delay={110}
+                trigger="load"
+                className="headline-accent"
+              />
+            </h1>
             <p className="intro">
               Plan smarter journeys with real-time forecast intelligence and
               load-aware risk analysis.
@@ -457,7 +465,9 @@ function App() {
                 {result ? "LIVE ROUTING DATA" : "AWAITING ROUTE DATA"}
               </div>
             </div>
-            <div className={`map-stage ${result ? "has-routes" : ""} ${loading ? "is-scanning" : ""}`}>
+            <div
+              className={`map-stage ${result ? "has-routes" : ""} ${loading ? "is-scanning" : ""}`}
+            >
               {result && (
                 <RouteMap
                   routes={result.routes}
@@ -468,7 +478,15 @@ function App() {
                 />
               )}
               <div className="map-grid" />
-              {loading && <div className="map-scan-field" aria-hidden="true"><span className="map-scan-field__beam" /><span className="map-scan-field__pulse map-scan-field__pulse--one" /><span className="map-scan-field__pulse map-scan-field__pulse--two" /><span className="map-scan-field__track map-scan-field__track--one" /><span className="map-scan-field__track map-scan-field__track--two" /></div>}
+              {loading && (
+                <div className="map-scan-field" aria-hidden="true">
+                  <span className="map-scan-field__beam" />
+                  <span className="map-scan-field__pulse map-scan-field__pulse--one" />
+                  <span className="map-scan-field__pulse map-scan-field__pulse--two" />
+                  <span className="map-scan-field__track map-scan-field__track--one" />
+                  <span className="map-scan-field__track map-scan-field__track--two" />
+                </div>
+              )}
               <div className="map-glow map-glow-one" />
               <div className="map-glow map-glow-two" />
               <div className="map-stage-top">
@@ -507,7 +525,11 @@ function App() {
               )}
               {loading && (
                 <div className="map-empty">
-                  <div className="routing-radar" role="img" aria-label="Scanning route conditions">
+                  <div
+                    className="routing-radar"
+                    role="img"
+                    aria-label="Scanning route conditions"
+                  >
                     <div className="routing-radar__scope">
                       <span className="routing-radar__sweep" />
                       <span className="routing-radar__ring routing-radar__ring--inner" />
@@ -517,9 +539,14 @@ function App() {
                       <span className="routing-radar__blip routing-radar__blip--one" />
                       <span className="routing-radar__blip routing-radar__blip--two" />
                       <span className="routing-radar__blip routing-radar__blip--three" />
-                      <span className="routing-radar__center"><FiNavigation /></span>
+                      <span className="routing-radar__center">
+                        <FiNavigation />
+                      </span>
                     </div>
-                    <span className="routing-radar__status"><span className="routing-radar__status-dot" /> SCANNING ROUTE CONDITIONS</span>
+                    <span className="routing-radar__status">
+                      <span className="routing-radar__status-dot" /> SCANNING
+                      ROUTE CONDITIONS
+                    </span>
                   </div>
                   <h3>Mapping your safest path.</h3>
                   <p>
@@ -534,7 +561,14 @@ function App() {
               </div>
             </div>
             <div className="bottom-info">
-              <SpotlightCard className="info-card" spotlightColor="#61b7ff" intensity={0.18} spotlightSize={190} borderGlow={0.3} flare={false}>
+              <SpotlightCard
+                className="info-card"
+                spotlightColor="#61b7ff"
+                intensity={0.18}
+                spotlightSize={190}
+                borderGlow={0.3}
+                flare={false}
+              >
                 <span className="info-icon blue">
                   <FiNavigation />
                 </span>
@@ -543,7 +577,14 @@ function App() {
                   <p>Road-network routing, not straight-line estimates.</p>
                 </div>
               </SpotlightCard>
-              <SpotlightCard className="info-card" spotlightColor="#61b7ff" intensity={0.18} spotlightSize={190} borderGlow={0.3} flare={false}>
+              <SpotlightCard
+                className="info-card"
+                spotlightColor="#61b7ff"
+                intensity={0.18}
+                spotlightSize={190}
+                borderGlow={0.3}
+                flare={false}
+              >
                 <span className="info-icon amber">
                   <FiCloud />
                 </span>
@@ -552,7 +593,14 @@ function App() {
                   <p>Conditions evaluated at each checkpoint ETA.</p>
                 </div>
               </SpotlightCard>
-              <SpotlightCard className="info-card" spotlightColor="#61b7ff" intensity={0.18} spotlightSize={190} borderGlow={0.3} flare={false}>
+              <SpotlightCard
+                className="info-card"
+                spotlightColor="#61b7ff"
+                intensity={0.18}
+                spotlightSize={190}
+                borderGlow={0.3}
+                flare={false}
+              >
                 <span className="info-icon green">
                   <FiShield />
                 </span>
