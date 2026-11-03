@@ -870,3 +870,11 @@
 .footer-diamond{vertical-align:middle;margin-right:6px}
 .empty-symbol svg{width:28px;height:28px}
 @media(max-width:560px){.mui-planning-form .form-columns{grid-template-columns:1fr;gap:24px}.mui-planning-form .MuiOutlinedInput-root{min-height:50px}.mui-recommended-chip{font-size:8px!important}}
+
+.animated-headline{display:flex;flex-direction:column;gap:0}
+.animated-headline p{margin:0;line-height:1.12}
+.animated-headline .headline-accent{color:#66b8ff}
+.bottom-info .spotlight-card.info-card{--spotlight-card-surface:#101d2e!important;--spotlight-card-shadow:none!important;padding:20px;min-width:0;border:1px solid #263a52;border-radius:14px}
+.bottom-info .spotlight-card.info-card:hover{border-color:#48799f}
+.bottom-info .spotlight-card.info-card .spotlight-card__light,.bottom-info .spotlight-card.info-card .spotlight-card__edge,.bottom-info .spotlight-card.info-card .spotlight-card__border{pointer-events:none}
+@media(prefers-reduced-motion:reduce){.bottom-info .spotlight-card.info-card{transition:none}}
