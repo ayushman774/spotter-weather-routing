@@ -15,6 +15,8 @@ type Props = {
   routeLabel: string;
   originName?: string;
   destinationName?: string;
+  selectedCheckpointIndex: number | null;
+  onCheckpointSelect: (index: number) => void;
 };
 
 function numeric(weather: Record<string, unknown> | undefined, keys: string[]) {
@@ -52,7 +54,7 @@ function riskTone(level?: string) {
     : "unknown";
 }
 
-export default function CheckpointTimeline({ checkpoints, routeLabel, originName, destinationName }: Props) {
+export default function CheckpointTimeline({ checkpoints, routeLabel, originName, destinationName, selectedCheckpointIndex, onCheckpointSelect }: Props) {
   const [timeMode, setTimeMode] = useState<"route" | "device">("route");
   const coloradoRoute = [originName, destinationName].some((name) => /\b(denver|colorado springs|colorado|\bco\b)\b/i.test(name ?? ""));
   const routeTimeZone = coloradoRoute ? "America/Denver" : undefined;
@@ -90,13 +92,13 @@ export default function CheckpointTimeline({ checkpoints, routeLabel, originName
             const tone = riskTone(checkpoint.risk?.level);
             return (
               <li
-                className="checkpoint-timeline__item"
+                className={`checkpoint-timeline__item ${selectedCheckpointIndex === index ? "checkpoint-timeline__item--selected" : ""}`}
                 key={`${index}-${checkpoint.latitude}-${checkpoint.longitude}`}
               >
                 <span className={`checkpoint-timeline__node checkpoint-timeline__node--${tone}`} aria-hidden="true" />
                 <div className="checkpoint-timeline__card">
                   <div className="checkpoint-timeline__top">
-                    <strong>Checkpoint {index + 1}</strong>
+                    <button type="button" className="checkpoint-timeline__jump" aria-pressed={selectedCheckpointIndex === index} onClick={() => onCheckpointSelect(index)} title={`Show checkpoint ${index + 1} on map`}><FiMapPin /> Checkpoint {index + 1} · View on map</button>
                     <span className={`checkpoint-timeline__risk checkpoint-timeline__risk--${tone}`}>
                       <FiShield /> {checkpoint.risk?.level?.replace(/[_-]/g, " ") || "Risk unavailable"}
                     </span>
