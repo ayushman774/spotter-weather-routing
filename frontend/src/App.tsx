@@ -126,7 +126,9 @@ function App() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<PlanResponse | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedCheckpointIndex, setSelectedCheckpointIndex] = useState<number | null>(null);
+  const [selectedCheckpointIndex, setSelectedCheckpointIndex] = useState<
+    number | null
+  >(null);
 
   const selected =
     result?.routes.find((route) => route.id === selectedId) ??

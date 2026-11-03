@@ -71,7 +71,25 @@
   width: auto;
 }
 
-.route-checkpoint-marker--active{transform:scale(1.25);box-shadow:0 0 0 7px #5cbdff33,0 0 22px #5cbdff99!important;z-index:2}
-.checkpoint-map-popup{font-family:"DM Sans",sans-serif;color:#eaf5ff;min-width:150px}
-.checkpoint-map-popup strong{display:block;font-size:13px;margin-bottom:7px}
-.checkpoint-map-popup p{margin:4px 0;font-size:11px;line-height:1.45}
+.route-checkpoint-marker--active {
+  transform: scale(1.25);
+  box-shadow:
+    0 0 0 7px #5cbdff33,
+    0 0 22px #5cbdff99 !important;
+  z-index: 2;
+}
+.checkpoint-map-popup {
+  font-family: "DM Sans", sans-serif;
+  color: #eaf5ff;
+  min-width: 150px;
+}
+.checkpoint-map-popup strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 7px;
+}
+.checkpoint-map-popup p {
+  margin: 4px 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
