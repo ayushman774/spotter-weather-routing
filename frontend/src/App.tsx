@@ -563,38 +563,112 @@ function App() {
               </div>
             </div>
             {result && selected && (
-              <section className="risk-intelligence" aria-label="Selected route risk intelligence" key={selected.id}>
+              <section
+                className="risk-intelligence"
+                aria-label="Selected route risk intelligence"
+                key={selected.id}
+              >
                 <div className="risk-intelligence__header">
                   <div>
-                    <span className="risk-intelligence__eyebrow"><FiActivity /> LIVE ROUTE ANALYSIS</span>
+                    <span className="risk-intelligence__eyebrow">
+                      <FiActivity /> LIVE ROUTE ANALYSIS
+                    </span>
                     <h3>Weather risk intelligence</h3>
-                    <p>Exposure along your selected route, based on checkpoint forecasts.</p>
+                    <p>
+                      Exposure along your selected route, based on checkpoint
+                      forecasts.
+                    </p>
                   </div>
-                  <span className="risk-intelligence__route"><FiNavigation /> Route {selected.safety_rank ?? result.routes.indexOf(selected) + 1}</span>
+                  <span className="risk-intelligence__route">
+                    <FiNavigation /> Route{" "}
+                    {selected.safety_rank ??
+                      result.routes.indexOf(selected) + 1}
+                  </span>
                 </div>
                 <div className="risk-intelligence__metrics">
-                  <div className="risk-intelligence__metric"><FiNavigation /><span>ROUTE DISTANCE</span><strong>{selected.distance_miles.toFixed(1)} <small>mi</small></strong></div>
-                  <div className="risk-intelligence__metric"><FiClock /><span>ESTIMATED DRIVE</span><strong>{formatDuration(selected.duration_minutes)}</strong></div>
-                  <div className="risk-intelligence__metric"><FiTrendingUp /><span>AVERAGE RISK</span><strong>{selected.risk_summary ? selected.risk_summary.average_risk.toFixed(1) : "—"}</strong></div>
+                  <div className="risk-intelligence__metric">
+                    <FiNavigation />
+                    <span>ROUTE DISTANCE</span>
+                    <strong>
+                      {selected.distance_miles.toFixed(1)} <small>mi</small>
+                    </strong>
+                  </div>
+                  <div className="risk-intelligence__metric">
+                    <FiClock />
+                    <span>ESTIMATED DRIVE</span>
+                    <strong>{formatDuration(selected.duration_minutes)}</strong>
+                  </div>
+                  <div className="risk-intelligence__metric">
+                    <FiTrendingUp />
+                    <span>AVERAGE RISK</span>
+                    <strong>
+                      {selected.risk_summary
+                        ? selected.risk_summary.average_risk.toFixed(1)
+                        : "—"}
+                    </strong>
+                  </div>
                 </div>
                 {selected.risk_summary ? (
                   <div className="risk-intelligence__exposure">
-                    {([
-                      { label: "Severe weather", value: selected.risk_summary.severe_miles, tone: "severe" },
-                      { label: "High risk", value: selected.risk_summary.high_miles, tone: "high" },
-                      { label: "No-travel conditions", value: selected.risk_summary.no_travel_miles, tone: "danger" },
-                    ] as const).map(({ label, value, tone }) => (
-                      <div className="risk-intelligence__exposure-row" key={tone}>
-                        <div className="risk-intelligence__exposure-label"><span>{label}</span><strong>{value.toFixed(1)} mi</strong></div>
-                        <div className="risk-intelligence__track" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={Math.max(selected.distance_miles, value, 1)} aria-valuenow={value}>
-                          <span className={`risk-intelligence__fill risk-intelligence__fill--${tone}`} style={{ width: `${Math.min(100, Math.max(0, value / Math.max(selected.distance_miles, 1) * 100))}%` }} />
+                    {(
+                      [
+                        {
+                          label: "Severe weather",
+                          value: selected.risk_summary.severe_miles,
+                          tone: "severe",
+                        },
+                        {
+                          label: "High risk",
+                          value: selected.risk_summary.high_miles,
+                          tone: "high",
+                        },
+                        {
+                          label: "No-travel conditions",
+                          value: selected.risk_summary.no_travel_miles,
+                          tone: "danger",
+                        },
+                      ] as const
+                    ).map(({ label, value, tone }) => (
+                      <div
+                        className="risk-intelligence__exposure-row"
+                        key={tone}
+                      >
+                        <div className="risk-intelligence__exposure-label">
+                          <span>{label}</span>
+                          <strong>{value.toFixed(1)} mi</strong>
+                        </div>
+                        <div
+                          className="risk-intelligence__track"
+                          role="meter"
+                          aria-label={label}
+                          aria-valuemin={0}
+                          aria-valuemax={Math.max(
+                            selected.distance_miles,
+                            value,
+                            1,
+                          )}
+                          aria-valuenow={value}
+                        >
+                          <span
+                            className={`risk-intelligence__fill risk-intelligence__fill--${tone}`}
+                            style={{
+                              width: `${Math.min(100, Math.max(0, (value / Math.max(selected.distance_miles, 1)) * 100))}%`,
+                            }}
+                          />
                         </div>
                       </div>
                     ))}
-                    <p className="risk-intelligence__note"><FiShield /> Exposure categories may overlap. Bars show the proportion of route miles in each category, not a combined total.</p>
+                    <p className="risk-intelligence__note">
+                      <FiShield /> Exposure categories may overlap. Bars show
+                      the proportion of route miles in each category, not a
+                      combined total.
+                    </p>
                   </div>
                 ) : (
-                  <p className="risk-intelligence__note">Detailed weather-risk metrics are not available for this route.</p>
+                  <p className="risk-intelligence__note">
+                    Detailed weather-risk metrics are not available for this
+                    route.
+                  </p>
                 )}
               </section>
             )}
