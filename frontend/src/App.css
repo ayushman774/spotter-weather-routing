@@ -878,3 +878,21 @@
 .bottom-info .spotlight-card.info-card:hover{border-color:#48799f}
 .bottom-info .spotlight-card.info-card .spotlight-card__light,.bottom-info .spotlight-card.info-card .spotlight-card__edge,.bottom-info .spotlight-card.info-card .spotlight-card__border{pointer-events:none}
 @media(prefers-reduced-motion:reduce){.bottom-info .spotlight-card.info-card{transition:none}}
+
+/* Route intelligence: map reveal and scanning states */
+.map-stage.has-routes .route-map{animation:spotter-map-reveal 1.05s cubic-bezier(.22,1,.36,1) both}
+.map-stage.has-routes .route-map .maplibregl-canvas{animation:spotter-map-focus 1.3s ease-out both}
+.map-stage.has-routes .map-stage-top{animation:spotter-overlay-arrive .65s .3s both}
+.map-stage.has-routes .map-stage-bottom{animation:spotter-overlay-arrive .65s .5s both}
+.map-stage .orbit-loading{position:relative;filter:drop-shadow(0 0 24px #4baeff38)}
+.map-stage .orbit-loading:before{content:"";position:absolute;inset:-25px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 245deg,#61b7ff15 285deg,#61b7ffb0 350deg,transparent 360deg);mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));animation:spotter-radar-sweep 2.6s linear infinite;pointer-events:none}
+.map-stage .orbit-loading:after{content:"";position:absolute;inset:8%;border:1px solid #67b8ff38;border-radius:50%;animation:spotter-radar-pulse 2.4s ease-out infinite;pointer-events:none}
+.map-stage .orbit-loading .orbit-center{animation:spotter-radar-breathe 2.2s ease-in-out infinite}
+.map-stage .orbit-loading+.map-empty-eyebrow{letter-spacing:2px}
+@keyframes spotter-map-reveal{from{opacity:0;clip-path:circle(5% at 50% 50%)}to{opacity:1;clip-path:circle(100% at 50% 50%)}}
+@keyframes spotter-map-focus{from{filter:brightness(.7) saturate(.7)}to{filter:brightness(1) saturate(1)}}
+@keyframes spotter-overlay-arrive{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spotter-radar-sweep{to{transform:rotate(360deg)}}
+@keyframes spotter-radar-pulse{0%{transform:scale(.85);opacity:.8}100%{transform:scale(1.35);opacity:0}}
+@keyframes spotter-radar-breathe{0%,100%{opacity:.65;transform:scale(.95)}50%{opacity:1;transform:scale(1.08)}}
+@media(prefers-reduced-motion:reduce){.map-stage.has-routes .route-map,.map-stage.has-routes .route-map .maplibregl-canvas,.map-stage.has-routes .map-stage-top,.map-stage.has-routes .map-stage-bottom,.map-stage .orbit-loading:before,.map-stage .orbit-loading:after,.map-stage .orbit-loading .orbit-center{animation:none!important}}
