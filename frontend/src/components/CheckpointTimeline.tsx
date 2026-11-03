@@ -70,20 +70,9 @@ export default function CheckpointTimeline({ checkpoints, routeLabel }: Props) {
       ) : (
         <ol className="checkpoint-timeline__list">
           {checkpoints.map((checkpoint, index) => {
-            const temperature = numeric(checkpoint.weather, [
-              "temperature_2m",
-              "temperature_c",
-              "temperature",
-            ]);
-            const wind = numeric(checkpoint.weather, [
-              "wind_speed_10m",
-              "wind_speed_kmh",
-              "wind_speed",
-            ]);
-            const precipitation = numeric(checkpoint.weather, [
-              "precipitation",
-              "precipitation_mm",
-            ]);
+            const wind = numeric(checkpoint.weather, ["wind_mph"]);
+            const rain = numeric(checkpoint.weather, ["rain_in_per_hr"]);
+            const snow = numeric(checkpoint.weather, ["snow_in_per_hr"]);
             const tone = riskTone(checkpoint.risk?.level);
             return (
               <li
@@ -105,9 +94,9 @@ export default function CheckpointTimeline({ checkpoints, routeLabel }: Props) {
                     )}
                   </div>
                   <div className="checkpoint-timeline__weather">
-                    <span>Temperature <strong>{temperature === null ? "—" : `${temperature.toFixed(1)}°C`}</strong></span>
-                    <span>Wind <strong>{wind === null ? "—" : `${wind.toFixed(1)} km/h`}</strong></span>
-                    <span>Precipitation <strong>{precipitation === null ? "—" : `${precipitation.toFixed(1)} mm`}</strong></span>
+                    <span>Wind <strong>{wind === null ? "—" : `${wind.toFixed(1)} mph`}</strong></span>
+                    <span>Rainfall <strong>{rain === null ? "—" : `${rain.toFixed(2)} in/hr`}</strong></span>
+                    <span>Snowfall <strong>{snow === null ? "—" : `${snow.toFixed(2)} in/hr`}</strong></span>
                   </div>
                   <span className="checkpoint-timeline__coords">
                     {checkpoint.latitude.toFixed(4)}, {checkpoint.longitude.toFixed(4)}
@@ -119,8 +108,8 @@ export default function CheckpointTimeline({ checkpoints, routeLabel }: Props) {
         </ol>
       )}
       <p className="checkpoint-timeline__disclaimer">
-        Weather readings appear only when the routing API supplies compatible values.
-        Missing readings are shown as —. Times are displayed in your device time zone.
+        Weather readings come from the routing API. Missing readings are shown as —.
+        Times are displayed in your device time zone.
       </p>
     </section>
   );
