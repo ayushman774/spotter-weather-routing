@@ -62,3 +62,24 @@ class RoutingApiTests(SimpleTestCase):
         provider_class.return_value.geocode.side_effect = RoutingProviderError("Unavailable")
         response = self.client.post("/api/routes/plan/", self.payload, format="json")
         self.assertEqual(response.status_code, 502)
+
+
+class RouteRankingTests(SimpleTestCase):
+    def test_safer_route_ranks_before_shorter_no_travel_route(self):
+        from routing.services.route_scoring import rank_routes
+
+        unsafe = {
+            "id": "unsafe", "duration_minutes": 40,
+            "risk_summary": {
+                "no_travel_miles": 1, "severe_miles": 1,
+                "high_miles": 0, "average_risk": 1,
+            },
+        }
+        safer = {
+            "id": "safer", "duration_minutes": 70,
+            "risk_summary": {
+                "no_travel_miles": 0, "severe_miles": 0,
+                "high_miles": 0, "average_risk": 0,
+            },
+        }
+        self.assertEqual(rank_routes([unsafe, safer])[0]["id"], "safer")
