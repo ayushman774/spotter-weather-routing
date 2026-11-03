@@ -9,6 +9,7 @@ type Checkpoint = {
   eta: string;
   distance_miles?: number;
   risk?: { level?: string };
+  weather?: Record<string, unknown>;
 };
 type Route = {
   id: string;
@@ -20,6 +21,8 @@ type Props = {
   routes: Route[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  selectedCheckpointIndex: number | null;
+  onCheckpointSelect: (index: number) => void;
 };
 
 const colors = ["#4c9bff", "#f7b75e", "#a99df7"];
@@ -39,12 +42,15 @@ function validCoordinates(route: Route) {
   );
 }
 
-export default function RouteMap({ routes, selectedId, onSelect }: Props) {
+export default function RouteMap({ routes, selectedId, onSelect, selectedCheckpointIndex, onCheckpointSelect }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapInstance | null>(null);
   const selectedRef = useRef(selectedId);
   const selectRef = useRef(onSelect);
   const markers = useRef<maplibregl.Marker[]>([]);
+  const checkpointMarkers = useRef<maplibregl.Marker[]>([]);
+  const checkpointSelectRef = useRef(onCheckpointSelect);
+  checkpointSelectRef.current = onCheckpointSelect;
   const routesRef = useRef(routes);
   selectedRef.current = selectedId;
   selectRef.current = onSelect;
@@ -146,6 +152,7 @@ export default function RouteMap({ routes, selectedId, onSelect }: Props) {
       });
       markers.current.forEach((marker) => marker.remove());
       markers.current = [];
+      checkpointMarkers.current = [];
       const selected =
         currentRoutes.find((route) => route.id === selectedRef.current) ??
         currentRoutes[0];
@@ -166,12 +173,13 @@ export default function RouteMap({ routes, selectedId, onSelect }: Props) {
         const popup = new maplibregl.Popup({ offset: 15 }).setText(
           `Checkpoint ${index + 1} · ${new Date(selected.checkpoints[index].eta).toLocaleString()}`,
         );
-        markers.current.push(
-          new maplibregl.Marker({ element })
-            .setLngLat(point)
-            .setPopup(popup)
-            .addTo(instance),
-        );
+        element.addEventListener("click", () => checkpointSelectRef.current(index));
+        const marker = new maplibregl.Marker({ element })
+          .setLngLat(point)
+          .setPopup(popup)
+          .addTo(instance);
+        markers.current.push(marker);
+        checkpointMarkers.current.push(marker);
       });
       [
         [coords[0], "START"],
@@ -223,6 +231,7 @@ export default function RouteMap({ routes, selectedId, onSelect }: Props) {
       routes.find((route) => route.id === selectedId) ?? routes[0];
     markers.current.forEach((marker) => marker.remove());
     markers.current = [];
+    checkpointMarkers.current = [];
     if (!selected) return;
     const coordinates = validCoordinates(selected);
     selected.checkpoints?.forEach((checkpoint, index) => {
@@ -236,12 +245,13 @@ export default function RouteMap({ routes, selectedId, onSelect }: Props) {
       const popup = new maplibregl.Popup({ offset: 15 }).setText(
         `Checkpoint ${index + 1} · ${new Date(checkpoint.eta).toLocaleString()}`,
       );
-      markers.current.push(
-        new maplibregl.Marker({ element })
-          .setLngLat([checkpoint.longitude, checkpoint.latitude])
-          .setPopup(popup)
-          .addTo(instance),
-      );
+      element.addEventListener("click", () => checkpointSelectRef.current(index));
+      const marker = new maplibregl.Marker({ element })
+        .setLngLat([checkpoint.longitude, checkpoint.latitude])
+        .setPopup(popup)
+        .addTo(instance);
+      markers.current.push(marker);
+      checkpointMarkers.current.push(marker);
     });
     if (coordinates.length >= 2) {
       [
@@ -259,6 +269,40 @@ export default function RouteMap({ routes, selectedId, onSelect }: Props) {
       });
     }
   }, [routes, selectedId]);
+
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || selectedCheckpointIndex === null) return;
+    const route = routes.find((item) => item.id === selectedId) ?? routes[0];
+    const checkpoint = route?.checkpoints?.[selectedCheckpointIndex];
+    if (!checkpoint || !Number.isFinite(checkpoint.longitude) || !Number.isFinite(checkpoint.latitude)) return;
+    checkpointMarkers.current.forEach((marker, index) => {
+      marker.getElement().classList.toggle("route-checkpoint-marker--active", index === selectedCheckpointIndex);
+    });
+    instance.flyTo({ center: [checkpoint.longitude, checkpoint.latitude], zoom: Math.max(instance.getZoom(), 10), duration: 950, essential: true });
+    const popup = new maplibregl.Popup({ offset: 20, closeOnClick: false });
+    const content = document.createElement("div");
+    content.className = "checkpoint-map-popup";
+    const heading = document.createElement("strong");
+    heading.textContent = `Checkpoint ${selectedCheckpointIndex + 1}`;
+    content.appendChild(heading);
+    const risk = document.createElement("p");
+    risk.textContent = `Risk: ${checkpoint.risk?.level?.replace(/[_-]/g, " ") ?? "Unavailable"}`;
+    content.appendChild(risk);
+    const weather = checkpoint.weather;
+    for (const [label, key, unit] of [["Wind", "wind_mph", "mph"], ["Rainfall", "rain_in_per_hr", "in/hr"], ["Snowfall", "snow_in_per_hr", "in/hr"]]) {
+      const value = weather?.[key];
+      const line = document.createElement("p");
+      line.textContent = `${label}: ${typeof value === "number" && Number.isFinite(value) ? value.toFixed(key === "wind_mph" ? 1 : 2) + " " + unit : "Unavailable"}`;
+      content.appendChild(line);
+    }
+    popup.setLngLat([checkpoint.longitude, checkpoint.latitude]).setDOMContent(content).addTo(instance);
+    return () => {
+      popup.remove();
+      checkpointMarkers.current.forEach((marker) => marker.getElement().classList.remove("route-checkpoint-marker--active"));
+    };
+  }, [routes, selectedId, selectedCheckpointIndex]);
 
   return (
     <div
