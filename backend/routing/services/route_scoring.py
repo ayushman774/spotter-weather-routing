@@ -93,10 +93,12 @@ def assess_route(checkpoints, load_weight_lb, weather_client=None):
 
 
 def rank_routes(routes):
-    """Lower severe exposure, then high exposure, then average risk, then time."""
+    """Prefer no-travel-free routes, then less severe/high exposure and duration."""
     return sorted(
         routes,
         key=lambda route: (
+            route["risk_summary"].get("no_travel_miles", 0) > 0,
+            route["risk_summary"].get("no_travel_miles", 0),
             route["risk_summary"]["severe_miles"],
             route["risk_summary"]["high_miles"],
             route["risk_summary"]["average_risk"],
