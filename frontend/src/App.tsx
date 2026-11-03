@@ -506,10 +506,19 @@ function App() {
               )}
               {loading && (
                 <div className="map-empty">
-                  <div className="orbit orbit-loading">
-                    <span className="orbit-ring orbit-ring-one" />
-                    <span className="orbit-ring orbit-ring-two" />
-                    <span className="orbit-center">⌖</span>
+                  <div className="routing-radar" role="img" aria-label="Scanning route conditions">
+                    <div className="routing-radar__scope">
+                      <span className="routing-radar__sweep" />
+                      <span className="routing-radar__ring routing-radar__ring--inner" />
+                      <span className="routing-radar__ring routing-radar__ring--outer" />
+                      <span className="routing-radar__axis routing-radar__axis--horizontal" />
+                      <span className="routing-radar__axis routing-radar__axis--vertical" />
+                      <span className="routing-radar__blip routing-radar__blip--one" />
+                      <span className="routing-radar__blip routing-radar__blip--two" />
+                      <span className="routing-radar__blip routing-radar__blip--three" />
+                      <span className="routing-radar__center"><FiNavigation /></span>
+                    </div>
+                    <span className="routing-radar__status"><span className="routing-radar__status-dot" /> SCANNING ROUTE CONDITIONS</span>
                   </div>
                   <h3>Mapping your safest path.</h3>
                   <p>
