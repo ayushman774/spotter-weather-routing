@@ -457,7 +457,7 @@ function App() {
                 {result ? "LIVE ROUTING DATA" : "AWAITING ROUTE DATA"}
               </div>
             </div>
-            <div className={`map-stage ${result ? "has-routes" : ""}`}>
+            <div className={`map-stage ${result ? "has-routes" : ""} ${loading ? "is-scanning" : ""}`}>
               {result && (
                 <RouteMap
                   routes={result.routes}
@@ -468,6 +468,7 @@ function App() {
                 />
               )}
               <div className="map-grid" />
+              {loading && <div className="map-scan-field" aria-hidden="true"><span className="map-scan-field__beam" /><span className="map-scan-field__pulse map-scan-field__pulse--one" /><span className="map-scan-field__pulse map-scan-field__pulse--two" /><span className="map-scan-field__track map-scan-field__track--one" /><span className="map-scan-field__track map-scan-field__track--two" /></div>}
               <div className="map-glow map-glow-one" />
               <div className="map-glow map-glow-two" />
               <div className="map-stage-top">
