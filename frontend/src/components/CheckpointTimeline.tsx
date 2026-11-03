@@ -98,7 +98,8 @@ export default function CheckpointTimeline({ checkpoints, routeLabel, originName
                 <span className={`checkpoint-timeline__node checkpoint-timeline__node--${tone}`} aria-hidden="true" />
                 <div className="checkpoint-timeline__card">
                   <div className="checkpoint-timeline__top">
-                    <button type="button" className="checkpoint-timeline__jump" aria-pressed={selectedCheckpointIndex === index} onClick={() => onCheckpointSelect(index)} title={`Show checkpoint ${index + 1} on map`}><FiMapPin /> Checkpoint {index + 1} · View on map</button>
+                    <strong className="checkpoint-timeline__checkpoint-title">Checkpoint {index + 1}</strong>
+                    <button type="button" className="checkpoint-timeline__jump" aria-pressed={selectedCheckpointIndex === index} onClick={() => onCheckpointSelect(index)} title={`Show checkpoint ${index + 1} on map`}><FiMapPin aria-hidden="true" /> <span>{selectedCheckpointIndex === index ? "Viewing on map" : "View on map"}</span></button>
                     <span className={`checkpoint-timeline__risk checkpoint-timeline__risk--${tone}`}>
                       <FiShield /> {checkpoint.risk?.level?.replace(/[_-]/g, " ") || "Risk unavailable"}
                     </span>
