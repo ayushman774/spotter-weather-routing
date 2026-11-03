@@ -68,7 +68,7 @@ function App() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<PlanResponse | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  
 
   const selected =
     result?.routes.find((route) => route.id === selectedId) ??
@@ -80,7 +80,6 @@ function App() {
     setLoading(true);
     setResult(null);
     setSelectedId(null);
-    setExpanded(false);
     try {
       const response = await fetch(`${API_BASE}/api/routes/plan/`, {
         method: "POST",
@@ -291,8 +290,7 @@ function App() {
                     key={route.id}
                     onClick={() => {
                       setSelectedId(route.id);
-                      setExpanded(false);
-                    }}
+                                      }}
                     className={`route-card ${active ? "selected" : ""}`}
                     style={
                       {
@@ -376,7 +374,7 @@ function App() {
             </div>
           </div>
           <div className={`map-stage ${result ? "has-routes" : ""}`}>
-            {result && <RouteMap routes={result.routes} selectedId={selected?.id ?? null} onSelect={(id) => { setSelectedId(id); setExpanded(false); }} />}
+            {result && <RouteMap routes={result.routes} selectedId={selected?.id ?? null} onSelect={(id) => { setSelectedId(id);  }} />}
             <div className="map-grid" />
             <div className="map-glow map-glow-one" />
             <div className="map-glow map-glow-two" />
