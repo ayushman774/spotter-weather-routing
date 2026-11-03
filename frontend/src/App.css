@@ -1255,3 +1255,10 @@
 .checkpoint-timeline__time-toggle button:focus-visible{outline:2px solid #85ceff;outline-offset:2px}
 @media(max-width:620px){.checkpoint-timeline__controls{justify-content:flex-start}}
 @media(prefers-reduced-motion:reduce){.checkpoint-timeline__time-toggle button{transition:none}}
+
+.checkpoint-timeline__jump{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;color:#edf6ff;font:inherit;font-weight:800;font-size:14px;cursor:pointer;padding:5px 0;text-align:left}
+.checkpoint-timeline__jump svg{color:#75c7ff;opacity:.75}
+.checkpoint-timeline__jump:hover,.checkpoint-timeline__jump[aria-pressed="true"]{color:#81ccff}
+.checkpoint-timeline__jump:focus-visible{outline:2px solid #85ceff;outline-offset:4px;border-radius:4px}
+.checkpoint-timeline__item--selected .checkpoint-timeline__card{border-color:#60b9fa;box-shadow:0 0 0 1px #60b9fa35,0 0 28px #3488c01c}
+.checkpoint-timeline__item--selected .checkpoint-timeline__node{background:#80ceff;box-shadow:0 0 0 3px #367eae,0 0 16px #5cbbff}
