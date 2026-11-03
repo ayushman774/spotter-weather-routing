@@ -60,6 +60,11 @@ def plan_routes(request):
 
         if data["assess_weather"]:
             weather_client = OpenMeteoClient()
+            weather_client.prefetch(
+                checkpoint
+                for route in routes
+                for checkpoint in route["checkpoints"]
+            )
 
             for route in routes:
                 enriched, summary = assess_route(
