@@ -1218,3 +1218,32 @@
     animation: none !important;
   }
 }
+
+.checkpoint-timeline{margin-top:20px;padding:24px;border:1px solid #263b53;border-radius:18px;background:linear-gradient(140deg,#101f32,#0c1727)}
+.checkpoint-timeline__heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px}
+.checkpoint-timeline__eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:10px;letter-spacing:1.5px;font-weight:800;color:#81caff}
+.checkpoint-timeline__heading h3{font-family:"Space Grotesk",sans-serif;font-size:21px;margin:9px 0 6px;color:#edf6ff}
+.checkpoint-timeline__heading p{margin:0;color:#91a8c0;font-size:12px;line-height:1.5}
+.checkpoint-timeline__count{white-space:nowrap;font-size:10px;font-weight:800;letter-spacing:1px;color:#a7c9e5;border:1px solid #35516c;padding:9px 12px;border-radius:20px}
+.checkpoint-timeline__list{list-style:none;padding:0 0 0 13px;margin:0;position:relative}
+.checkpoint-timeline__list:before{content:"";position:absolute;top:10px;bottom:35px;left:18px;width:2px;background:linear-gradient(#479de3,#243c56)}
+.checkpoint-timeline__item{position:relative;padding:0 0 15px 28px;animation:checkpoint-enter .45s ease both}
+.checkpoint-timeline__node{position:absolute;left:0;top:17px;width:12px;height:12px;border-radius:50%;background:#7f9cb9;border:3px solid #122338;box-shadow:0 0 0 2px #37516b;z-index:1}
+.checkpoint-timeline__node--safe{background:#57dfab}.checkpoint-timeline__node--moderate{background:#8cbdf5}.checkpoint-timeline__node--warning{background:#f3b45e}.checkpoint-timeline__node--danger{background:#ef7980}
+.checkpoint-timeline__card{padding:17px;border:1px solid #2a4058;border-radius:12px;background:#111f31;transition:border-color .2s,transform .2s}
+.checkpoint-timeline__card:hover{border-color:#5089b8;transform:translateX(3px)}
+.checkpoint-timeline__top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.checkpoint-timeline__top>strong{font-size:14px;color:#eef6ff}
+.checkpoint-timeline__risk{display:inline-flex;align-items:center;gap:5px;border-radius:30px;padding:5px 9px;background:#253548;color:#b2c4d6;font-size:10px;font-weight:700;text-transform:capitalize}
+.checkpoint-timeline__risk--safe{background:#16392e;color:#7ee4b3}.checkpoint-timeline__risk--moderate{background:#213d5b;color:#9ccaff}.checkpoint-timeline__risk--warning{background:#45321e;color:#f5c480}.checkpoint-timeline__risk--danger{background:#49282e;color:#ff9fa6}
+.checkpoint-timeline__details{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0;color:#a8bfd6;font-size:11px}
+.checkpoint-timeline__details span{display:inline-flex;align-items:center;gap:6px}
+.checkpoint-timeline__weather{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.checkpoint-timeline__weather>span{display:flex;flex-direction:column;gap:6px;background:#17283c;padding:11px;border-radius:8px;color:#91a9c0;font-size:10px}
+.checkpoint-timeline__weather strong{font-size:15px;color:#edf6ff}
+.checkpoint-timeline__coords{display:block;margin-top:11px;color:#728da8;font-size:10px;font-variant-numeric:tabular-nums}
+.checkpoint-timeline__disclaimer{color:#809bb4;font-size:11px;line-height:1.5;margin:9px 0 0}
+.checkpoint-timeline__empty{display:flex;align-items:center;gap:9px;color:#a9bed3;font-size:13px;padding:24px;border:1px dashed #36516c;border-radius:12px}
+@keyframes checkpoint-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:620px){.checkpoint-timeline{padding:16px}.checkpoint-timeline__heading{flex-wrap:wrap}.checkpoint-timeline__weather{grid-template-columns:1fr}.checkpoint-timeline__weather>span{flex-direction:row;justify-content:space-between;align-items:center}}
+@media(prefers-reduced-motion:reduce){.checkpoint-timeline__item{animation:none}.checkpoint-timeline__card{transition:none}}
