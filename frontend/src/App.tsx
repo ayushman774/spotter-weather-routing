@@ -27,6 +27,8 @@ import {
 } from "react-icons/fi";
 import "./App.css";
 import RouteMap from "./components/RouteMap";
+import SpotlightCard from "./components/reactbits/SpotlightCard";
+import BlurText from "./components/reactbits/BlurText";
 
 type RiskSummary = {
   severe_miles: number;
@@ -202,11 +204,7 @@ function App() {
               <span className="eyebrow-line" /> COMMAND CENTER{" "}
               <span className="eyebrow-index">01 / PLAN</span>
             </div>
-            <h1>
-              Every mile.
-              <br />
-              <span>More certain.</span>
-            </h1>
+            <h1 className="animated-headline"><BlurText text="Every mile." delay={110} trigger="load" /><BlurText text="More certain." delay={110} trigger="load" className="headline-accent" /></h1>
             <p className="intro">
               Plan smarter journeys with real-time forecast intelligence and
               load-aware risk analysis.
@@ -526,7 +524,7 @@ function App() {
               </div>
             </div>
             <div className="bottom-info">
-              <div className="info-card">
+              <SpotlightCard className="info-card" spotlightColor="#61b7ff" intensity={0.18} spotlightSize={190} borderGlow={0.3} flare={false}>
                 <span className="info-icon blue">
                   <FiNavigation />
                 </span>
@@ -534,8 +532,8 @@ function App() {
                   <strong>Real route alternatives</strong>
                   <p>Road-network routing, not straight-line estimates.</p>
                 </div>
-              </div>
-              <div className="info-card">
+              </SpotlightCard>
+              <SpotlightCard className="info-card" spotlightColor="#61b7ff" intensity={0.18} spotlightSize={190} borderGlow={0.3} flare={false}>
                 <span className="info-icon amber">
                   <FiCloud />
                 </span>
@@ -543,8 +541,8 @@ function App() {
                   <strong>Forecast at arrival</strong>
                   <p>Conditions evaluated at each checkpoint ETA.</p>
                 </div>
-              </div>
-              <div className="info-card">
+              </SpotlightCard>
+              <SpotlightCard className="info-card" spotlightColor="#61b7ff" intensity={0.18} spotlightSize={190} borderGlow={0.3} flare={false}>
                 <span className="info-icon green">
                   <FiShield />
                 </span>
@@ -552,7 +550,7 @@ function App() {
                   <strong>Safety-first decisions</strong>
                   <p>Weather exposure ranked before travel time.</p>
                 </div>
-              </div>
+              </SpotlightCard>
             </div>
           </main>
         </div>
