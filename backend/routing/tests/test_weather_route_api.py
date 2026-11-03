@@ -1,15 +1,9 @@
-"""API integration tests for opt-in weather assessment."""
-
 from unittest.mock import patch
 
 from routing.services.openrouteservice import Location
 from routing.services.risk import WeatherConditions
 from routing.services.weather import CheckpointForecast, WeatherProviderError
-from routing.tests.test_route_api import (
-    make_request,
-    request_data,
-    route_feature,
-)
+from routing.tests.test_route_api import make_request, request_data, route_feature
 
 
 def setup_routes(route_feature, count=2):
@@ -28,7 +22,7 @@ def test_weather_enrichment_and_recommendation(request_data, route_feature):
     request_data["assess_weather"] = True
     route_patch = setup_routes(route_feature)
     try:
-        with patch("routing.services.route_scoring.OpenMeteoClient") as weather_class:
+        with patch("routing.views.OpenMeteoClient") as weather_class:
             weather_class.return_value.get_forecast.side_effect = (
                 lambda lat, lon, eta: CheckpointForecast(
                     eta.isoformat(), eta.isoformat(),
@@ -36,6 +30,7 @@ def test_weather_enrichment_and_recommendation(request_data, route_feature):
                 )
             )
             response = make_request(request_data)
+            weather_class.assert_called_once_with()
     finally:
         route_patch.stop()
 
@@ -51,7 +46,7 @@ def test_weather_provider_failure_returns_502(request_data, route_feature):
     request_data["assess_weather"] = True
     route_patch = setup_routes(route_feature, count=1)
     try:
-        with patch("routing.services.route_scoring.OpenMeteoClient") as weather_class:
+        with patch("routing.views.OpenMeteoClient") as weather_class:
             weather_class.return_value.get_forecast.side_effect = WeatherProviderError(
                 "forecast unavailable"
             )
@@ -74,3 +69,24 @@ def test_unassessed_request_preserves_existing_behavior(request_data, route_feat
     assert response.data["weather_assessed"] is False
     assert response.data["recommended_route_id"] is None
     assert "risk_summary" not in response.data["routes"][0]
+
+
+def test_same_weather_client_is_shared_across_routes(request_data, route_feature):
+    request_data["assess_weather"] = True
+    route_patch = setup_routes(route_feature, count=3)
+    try:
+        with patch("routing.views.OpenMeteoClient") as weather_class:
+            weather_class.return_value.get_forecast.side_effect = (
+                lambda lat, lon, eta: CheckpointForecast(
+                    eta.isoformat(), eta.isoformat(),
+                    WeatherConditions(20, 0, 0),
+                )
+            )
+            response = make_request(request_data)
+            weather_class.assert_called_once_with()
+            assert weather_class.return_value.get_forecast.call_count > 3
+    finally:
+        route_patch.stop()
+
+    assert response.status_code == 200
+    assert response.data["route_count"] == 3
