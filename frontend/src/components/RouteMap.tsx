@@ -3,15 +3,40 @@ import maplibregl, { type Map as MapInstance } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./RouteMap.css";
 
-type Checkpoint = { latitude: number; longitude: number; eta: string; distance_miles?: number; risk?: { level?: string } };
-type Route = { id: string; geometry: { type: string; coordinates: number[][] }; checkpoints: Checkpoint[]; safety_rank?: number };
-type Props = { routes: Route[]; selectedId: string | null; onSelect: (id: string) => void };
+type Checkpoint = {
+  latitude: number;
+  longitude: number;
+  eta: string;
+  distance_miles?: number;
+  risk?: { level?: string };
+};
+type Route = {
+  id: string;
+  geometry: { type: string; coordinates: number[][] };
+  checkpoints: Checkpoint[];
+  safety_rank?: number;
+};
+type Props = {
+  routes: Route[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+};
 
 const colors = ["#4c9bff", "#f7b75e", "#a99df7"];
-const styleUrl = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+const styleUrl =
+  "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 function validCoordinates(route: Route) {
-  return route.geometry?.coordinates?.filter((point) => point.length >= 2 && Number.isFinite(point[0]) && Number.isFinite(point[1]) && Math.abs(point[0]) <= 180 && Math.abs(point[1]) <= 90) ?? [];
+  return (
+    route.geometry?.coordinates?.filter(
+      (point) =>
+        point.length >= 2 &&
+        Number.isFinite(point[0]) &&
+        Number.isFinite(point[1]) &&
+        Math.abs(point[0]) <= 180 &&
+        Math.abs(point[1]) <= 90,
+    ) ?? []
+  );
 }
 
 export default function RouteMap({ routes, selectedId, onSelect }: Props) {
@@ -35,7 +60,10 @@ export default function RouteMap({ routes, selectedId, onSelect }: Props) {
       attributionControl: { compact: true },
     });
     map.current = instance;
-    instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    instance.addControl(
+      new maplibregl.NavigationControl({ showCompass: false }),
+      "top-right",
+    );
 
     function drawRoutes() {
       const currentRoutes = routesRef.current;
@@ -46,29 +74,53 @@ export default function RouteMap({ routes, selectedId, onSelect }: Props) {
         if (instance.getSource(sourceId)) return;
         instance.addSource(sourceId, {
           type: "geojson",
-          data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates } },
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: { type: "LineString", coordinates },
+          },
         });
         instance.addLayer({
           id: `route-halo-${index}`,
           type: "line",
           source: sourceId,
-          paint: { "line-color": colors[index % colors.length], "line-width": 11, "line-opacity": 0.14, "line-blur": 5 },
+          paint: {
+            "line-color": colors[index % colors.length],
+            "line-width": 11,
+            "line-opacity": 0.14,
+            "line-blur": 5,
+          },
         });
         instance.addLayer({
           id: `route-line-${index}`,
           type: "line",
           source: sourceId,
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": colors[index % colors.length], "line-width": 3, "line-opacity": 0.6 },
+          paint: {
+            "line-color": colors[index % colors.length],
+            "line-width": 3,
+            "line-opacity": 0.6,
+          },
         });
-        instance.on("click", `route-line-${index}`, () => selectRef.current(route.id));
-        instance.on("mouseenter", `route-line-${index}`, () => { instance.getCanvas().style.cursor = "pointer"; });
-        instance.on("mouseleave", `route-line-${index}`, () => { instance.getCanvas().style.cursor = ""; });
+        instance.on("click", `route-line-${index}`, () =>
+          selectRef.current(route.id),
+        );
+        instance.on("mouseenter", `route-line-${index}`, () => {
+          instance.getCanvas().style.cursor = "pointer";
+        });
+        instance.on("mouseleave", `route-line-${index}`, () => {
+          instance.getCanvas().style.cursor = "";
+        });
       });
       highlight();
       const bounds = new maplibregl.LngLatBounds();
-      currentRoutes.forEach((route) => validCoordinates(route).forEach((point) => bounds.extend([point[0], point[1]])));
-      if (!bounds.isEmpty()) instance.fitBounds(bounds, { padding: 75, maxZoom: 11, duration: 900 });
+      currentRoutes.forEach((route) =>
+        validCoordinates(route).forEach((point) =>
+          bounds.extend([point[0], point[1]]),
+        ),
+      );
+      if (!bounds.isEmpty())
+        instance.fitBounds(bounds, { padding: 75, maxZoom: 11, duration: 900 });
     }
 
     function highlight() {
@@ -76,18 +128,35 @@ export default function RouteMap({ routes, selectedId, onSelect }: Props) {
       currentRoutes.forEach((route, index) => {
         if (!instance.getLayer(`route-line-${index}`)) return;
         const active = route.id === selectedRef.current;
-        instance.setPaintProperty(`route-line-${index}`, "line-width", active ? 6 : 3);
-        instance.setPaintProperty(`route-line-${index}`, "line-opacity", active ? 1 : 0.35);
-        instance.setPaintProperty(`route-halo-${index}`, "line-opacity", active ? 0.35 : 0.08);
+        instance.setPaintProperty(
+          `route-line-${index}`,
+          "line-width",
+          active ? 6 : 3,
+        );
+        instance.setPaintProperty(
+          `route-line-${index}`,
+          "line-opacity",
+          active ? 1 : 0.35,
+        );
+        instance.setPaintProperty(
+          `route-halo-${index}`,
+          "line-opacity",
+          active ? 0.35 : 0.08,
+        );
       });
       markers.current.forEach((marker) => marker.remove());
       markers.current = [];
-      const selected = currentRoutes.find((route) => route.id === selectedRef.current) ?? currentRoutes[0];
+      const selected =
+        currentRoutes.find((route) => route.id === selectedRef.current) ??
+        currentRoutes[0];
       if (!selected) return;
       const coords = validCoordinates(selected);
       if (coords.length < 2) return;
       const points = selected.checkpoints?.length
-        ? selected.checkpoints.map((checkpoint) => [checkpoint.longitude, checkpoint.latitude] as [number, number])
+        ? selected.checkpoints.map(
+            (checkpoint) =>
+              [checkpoint.longitude, checkpoint.latitude] as [number, number],
+          )
         : [];
       points.forEach((point, index) => {
         if (!Number.isFinite(point[0]) || !Number.isFinite(point[1])) return;
@@ -97,13 +166,25 @@ export default function RouteMap({ routes, selectedId, onSelect }: Props) {
         const popup = new maplibregl.Popup({ offset: 15 }).setText(
           `Checkpoint ${index + 1} · ${new Date(selected.checkpoints[index].eta).toLocaleString()}`,
         );
-        markers.current.push(new maplibregl.Marker({ element }).setLngLat(point).setPopup(popup).addTo(instance));
+        markers.current.push(
+          new maplibregl.Marker({ element })
+            .setLngLat(point)
+            .setPopup(popup)
+            .addTo(instance),
+        );
       });
-      [[coords[0], "START"], [coords[coords.length - 1], "FINISH"]].forEach(([point, label]) => {
+      [
+        [coords[0], "START"],
+        [coords[coords.length - 1], "FINISH"],
+      ].forEach(([point, label]) => {
         const element = document.createElement("div");
         element.className = "route-endpoint-marker";
         element.textContent = label as string;
-        markers.current.push(new maplibregl.Marker({ element }).setLngLat(point as number[] as [number, number]).addTo(instance));
+        markers.current.push(
+          new maplibregl.Marker({ element })
+            .setLngLat(point as number[] as [number, number])
+            .addTo(instance),
+        );
       });
     }
 
@@ -122,31 +203,68 @@ export default function RouteMap({ routes, selectedId, onSelect }: Props) {
     routes.forEach((route, index) => {
       if (!instance.getLayer(`route-line-${index}`)) return;
       const active = route.id === selectedId;
-      instance.setPaintProperty(`route-line-${index}`, "line-width", active ? 6 : 3);
-      instance.setPaintProperty(`route-line-${index}`, "line-opacity", active ? 1 : 0.35);
-      instance.setPaintProperty(`route-halo-${index}`, "line-opacity", active ? 0.35 : 0.08);
+      instance.setPaintProperty(
+        `route-line-${index}`,
+        "line-width",
+        active ? 6 : 3,
+      );
+      instance.setPaintProperty(
+        `route-line-${index}`,
+        "line-opacity",
+        active ? 1 : 0.35,
+      );
+      instance.setPaintProperty(
+        `route-halo-${index}`,
+        "line-opacity",
+        active ? 0.35 : 0.08,
+      );
     });
-    const selected = routes.find((route) => route.id === selectedId) ?? routes[0];
+    const selected =
+      routes.find((route) => route.id === selectedId) ?? routes[0];
     markers.current.forEach((marker) => marker.remove());
     markers.current = [];
     if (!selected) return;
     const coordinates = validCoordinates(selected);
     selected.checkpoints?.forEach((checkpoint, index) => {
-      if (!Number.isFinite(checkpoint.longitude) || !Number.isFinite(checkpoint.latitude)) return;
+      if (
+        !Number.isFinite(checkpoint.longitude) ||
+        !Number.isFinite(checkpoint.latitude)
+      )
+        return;
       const element = document.createElement("div");
       element.className = "route-checkpoint-marker";
-      const popup = new maplibregl.Popup({ offset: 15 }).setText(`Checkpoint ${index + 1} · ${new Date(checkpoint.eta).toLocaleString()}`);
-      markers.current.push(new maplibregl.Marker({ element }).setLngLat([checkpoint.longitude, checkpoint.latitude]).setPopup(popup).addTo(instance));
+      const popup = new maplibregl.Popup({ offset: 15 }).setText(
+        `Checkpoint ${index + 1} · ${new Date(checkpoint.eta).toLocaleString()}`,
+      );
+      markers.current.push(
+        new maplibregl.Marker({ element })
+          .setLngLat([checkpoint.longitude, checkpoint.latitude])
+          .setPopup(popup)
+          .addTo(instance),
+      );
     });
     if (coordinates.length >= 2) {
-      [[coordinates[0], "START"], [coordinates[coordinates.length - 1], "FINISH"]].forEach(([point, label]) => {
+      [
+        [coordinates[0], "START"],
+        [coordinates[coordinates.length - 1], "FINISH"],
+      ].forEach(([point, label]) => {
         const element = document.createElement("div");
         element.className = "route-endpoint-marker";
         element.textContent = label as string;
-        markers.current.push(new maplibregl.Marker({ element }).setLngLat(point as number[] as [number, number]).addTo(instance));
+        markers.current.push(
+          new maplibregl.Marker({ element })
+            .setLngLat(point as number[] as [number, number])
+            .addTo(instance),
+        );
       });
     }
   }, [routes, selectedId]);
 
-  return <div className="route-map" ref={container} aria-label="Interactive route alternatives map" />;
+  return (
+    <div
+      className="route-map"
+      ref={container}
+      aria-label="Interactive route alternatives map"
+    />
+  );
 }
