@@ -314,7 +314,7 @@ function App() {
               <span className="stage-label"><FiCompass /> GEOSPATIAL INTELLIGENCE</span>
               {!result && <span className="stage-coordinates">MAP READY</span>}
             </div>
-            {!result && (
+            {!result && !loading && (
               <div className="map-empty">
                 <div className="orbit">
                   <span className="orbit-ring orbit-ring-one" />
