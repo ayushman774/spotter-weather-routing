@@ -1262,3 +1262,14 @@
 .checkpoint-timeline__jump:focus-visible{outline:2px solid #85ceff;outline-offset:4px;border-radius:4px}
 .checkpoint-timeline__item--selected .checkpoint-timeline__card{border-color:#60b9fa;box-shadow:0 0 0 1px #60b9fa35,0 0 28px #3488c01c}
 .checkpoint-timeline__item--selected .checkpoint-timeline__node{background:#80ceff;box-shadow:0 0 0 3px #367eae,0 0 16px #5cbbff}
+
+/* Distinct checkpoint map action */
+.checkpoint-timeline__checkpoint-title{font-size:14px;color:#edf6ff;margin-right:auto}
+.checkpoint-timeline__jump{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:8px 13px;border:1px solid #408fd0;border-radius:9px;background:linear-gradient(135deg,#225987,#1a4168);color:#e7f5ff;font:inherit;font-size:11px;font-weight:800;letter-spacing:.1px;white-space:nowrap;cursor:pointer;box-shadow:0 3px 12px #0003;transition:background .18s,transform .18s,border-color .18s,box-shadow .18s}
+.checkpoint-timeline__jump svg{color:#b4e2ff;opacity:1;font-size:14px}
+.checkpoint-timeline__jump:hover{color:#fff;background:linear-gradient(135deg,#2e75ad,#235b8a);border-color:#82caff;transform:translateY(-1px);box-shadow:0 5px 18px #3297ee38}
+.checkpoint-timeline__jump[aria-pressed="true"]{color:#d9fff2;background:#174c46;border-color:#4fc9a2;box-shadow:0 0 0 1px #4fc9a22b}
+.checkpoint-timeline__jump[aria-pressed="true"] svg{color:#83e5bf}
+.checkpoint-timeline__jump:focus-visible{outline:2px solid #a5dfff;outline-offset:3px}
+@media(max-width:620px){.checkpoint-timeline__top{gap:10px}.checkpoint-timeline__checkpoint-title{flex-basis:100%}.checkpoint-timeline__jump{min-height:40px}}
+@media(prefers-reduced-motion:reduce){.checkpoint-timeline__jump{transition:none}.checkpoint-timeline__jump:hover{transform:none}}
