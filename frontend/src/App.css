@@ -912,3 +912,26 @@
 @keyframes routing-blip{0%,100%{opacity:.18;transform:scale(.7)}40%,65%{opacity:1;transform:scale(1.25)}}
 @keyframes routing-status-pulse{50%{opacity:.3;transform:scale(.7)}}
 @media(prefers-reduced-motion:reduce){.routing-radar__sweep,.routing-radar__blip,.routing-radar__status-dot{animation:none!important}.routing-radar__sweep{transform:rotate(40deg)}.routing-radar__blip{opacity:1}}
+
+/* Full-panel route intelligence scanning */
+.map-stage.is-scanning{position:relative;isolation:isolate;overflow:hidden;box-shadow:inset 0 0 80px rgba(39,132,225,.09),0 0 32px rgba(46,135,235,.08);animation:scan-panel-glow 4s ease-in-out infinite}
+.map-stage.is-scanning::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;background:linear-gradient(120deg,transparent 10%,rgba(93,196,255,.85) 28%,transparent 43%,transparent 65%,rgba(70,150,255,.6) 82%,transparent 95%);background-size:250% 250%;animation:scan-border-travel 5s linear infinite;pointer-events:none;z-index:8;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.map-stage.is-scanning .map-grid{animation:scan-grid-drift 12s linear infinite;opacity:.75}
+.map-stage.is-scanning .map-glow-one{animation:scan-ambient-one 7s ease-in-out infinite alternate}
+.map-stage.is-scanning .map-glow-two{animation:scan-ambient-two 9s ease-in-out infinite alternate}
+.map-stage.is-scanning .map-empty{position:relative;z-index:5}
+.map-scan-field{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
+.map-scan-field__beam{position:absolute;left:0;right:0;top:-18%;height:26%;background:linear-gradient(to bottom,transparent,rgba(72,177,255,.025) 42%,rgba(81,195,255,.15) 95%,rgba(133,216,255,.48) 100%);filter:drop-shadow(0 0 16px rgba(72,180,255,.5));animation:scan-beam-travel 5.5s ease-in-out infinite}
+.map-scan-field__pulse{position:absolute;width:320px;height:320px;border-radius:50%;border:1px solid rgba(87,184,255,.22);box-shadow:0 0 45px rgba(56,156,248,.12),inset 0 0 32px rgba(68,169,255,.07);animation:scan-field-pulse 5s ease-out infinite}
+.map-scan-field__pulse--one{top:14%;left:8%}.map-scan-field__pulse--two{right:8%;bottom:7%;animation-delay:2.5s}
+.map-scan-field__track{position:absolute;width:40%;height:1px;background:linear-gradient(90deg,transparent,rgba(92,195,255,.55),transparent);opacity:.3;transform:rotate(-27deg);animation:scan-track-glimmer 4s ease-in-out infinite}
+.map-scan-field__track--one{top:28%;left:3%}.map-scan-field__track--two{bottom:24%;right:2%;animation-delay:2s}
+@keyframes scan-panel-glow{0%,100%{box-shadow:inset 0 0 80px rgba(39,132,225,.07),0 0 25px rgba(46,135,235,.06)}50%{box-shadow:inset 0 0 110px rgba(39,132,225,.16),0 0 38px rgba(46,135,235,.13)}}
+@keyframes scan-border-travel{0%{background-position:0% 0%}100%{background-position:100% 100%}}
+@keyframes scan-grid-drift{to{background-position:0 80px}}
+@keyframes scan-ambient-one{to{transform:translate(12%,14%) scale(1.2);opacity:.85}}
+@keyframes scan-ambient-two{to{transform:translate(-12%,-10%) scale(1.3);opacity:.8}}
+@keyframes scan-beam-travel{0%{transform:translateY(-25vh);opacity:0}12%{opacity:1}85%{opacity:1}100%{transform:translateY(110vh);opacity:0}}
+@keyframes scan-field-pulse{0%{transform:scale(.45);opacity:0}20%{opacity:.8}100%{transform:scale(2.1);opacity:0}}
+@keyframes scan-track-glimmer{50%{opacity:.75;filter:drop-shadow(0 0 10px #5bbcff)}}
+@media(prefers-reduced-motion:reduce){.map-stage.is-scanning,.map-stage.is-scanning::before,.map-stage.is-scanning .map-grid,.map-stage.is-scanning .map-glow-one,.map-stage.is-scanning .map-glow-two,.map-scan-field__beam,.map-scan-field__pulse,.map-scan-field__track{animation:none!important}.map-scan-field__beam{top:45%;opacity:.25}}
