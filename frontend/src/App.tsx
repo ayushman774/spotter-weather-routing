@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import "./App.css";
+import RouteMap from "./components/RouteMap";
 
 type RiskSummary = {
   severe_miles: number;
@@ -374,13 +375,14 @@ function App() {
               {result ? "LIVE ROUTING DATA" : "AWAITING ROUTE DATA"}
             </div>
           </div>
-          <div className="map-stage">
+          <div className={`map-stage ${result ? "has-routes" : ""}`}>
+            {result && <RouteMap routes={result.routes} selectedId={selected?.id ?? null} onSelect={(id) => { setSelectedId(id); setExpanded(false); }} />}
             <div className="map-grid" />
             <div className="map-glow map-glow-one" />
             <div className="map-glow map-glow-two" />
             <div className="map-stage-top">
               <span className="stage-label">GEOSPATIAL INTELLIGENCE</span>
-              <span className="stage-coordinates">39°44′N &nbsp; 104°59′W</span>
+              {!result && <span className="stage-coordinates">MAP READY</span>}
             </div>
             {!result && (
               <div className="map-empty">
@@ -418,92 +420,6 @@ function App() {
                   Gathering route geometry and assessing forecast conditions at
                   each checkpoint.
                 </p>
-              </div>
-            )}
-            {result && selected && (
-              <div className="analysis-view">
-                <div className="analysis-head">
-                  <span className="analysis-kicker">SELECTED JOURNEY</span>
-                  <h3>
-                    {origin} <span>→</span> {destination}
-                  </h3>
-                  <p>
-                    Route {selected.safety_rank ?? "—"} ·{" "}
-                    {selected.distance_miles.toFixed(1)} mi ·{" "}
-                    {formatDuration(selected.duration_minutes)}
-                  </p>
-                </div>
-                <div className="analysis-stats">
-                  <div>
-                    <small>CHECKPOINTS</small>
-                    <strong>{selected.checkpoints.length}</strong>
-                  </div>
-                  <div>
-                    <small>SEVERE EXPOSURE</small>
-                    <strong>
-                      {selected.risk_summary?.severe_miles.toFixed(1) ?? "—"}{" "}
-                      <em>mi</em>
-                    </strong>
-                  </div>
-                  <div>
-                    <small>HIGH EXPOSURE</small>
-                    <strong>
-                      {selected.risk_summary?.high_miles.toFixed(1) ?? "—"}{" "}
-                      <em>mi</em>
-                    </strong>
-                  </div>
-                  <div>
-                    <small>AVG RISK SCORE</small>
-                    <strong>
-                      {selected.risk_summary?.average_risk.toFixed(2) ?? "—"}
-                    </strong>
-                  </div>
-                </div>
-                <div className="geometry-note">
-                  <span className="geometry-note-icon">◇</span>
-                  <div>
-                    <strong>Route geometry received</strong>
-                    <p>
-                      {selected.geometry?.coordinates?.length ?? 0} coordinates
-                      ready for map rendering. Interactive map integration is
-                      the next development step.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="checkpoints-toggle"
-                  onClick={() => setExpanded(!expanded)}
-                >
-                  {expanded ? "Hide" : "Inspect"} checkpoint forecast details{" "}
-                  <span>{expanded ? "−" : "+"}</span>
-                </button>
-                {expanded && (
-                  <div className="checkpoint-list">
-                    {selected.checkpoints.map((checkpoint, index) => (
-                      <div
-                        key={`${checkpoint.eta}-${index}`}
-                        className="checkpoint-row"
-                      >
-                        <span className="checkpoint-index">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
-                        <div>
-                          <strong>
-                            {new Date(checkpoint.eta).toLocaleString()}
-                          </strong>
-                          <small>
-                            {checkpoint.latitude.toFixed(4)},{" "}
-                            {checkpoint.longitude.toFixed(4)}
-                          </small>
-                        </div>
-                        <span className="checkpoint-risk">
-                          {checkpoint.risk?.level ?? "Forecast assessed"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             )}
             <div className="map-stage-bottom">
