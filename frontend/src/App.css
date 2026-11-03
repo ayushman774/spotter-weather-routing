@@ -1247,3 +1247,11 @@
 @keyframes checkpoint-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:620px){.checkpoint-timeline{padding:16px}.checkpoint-timeline__heading{flex-wrap:wrap}.checkpoint-timeline__weather{grid-template-columns:1fr}.checkpoint-timeline__weather>span{flex-direction:row;justify-content:space-between;align-items:center}}
 @media(prefers-reduced-motion:reduce){.checkpoint-timeline__item{animation:none}.checkpoint-timeline__card{transition:none}}
+
+.checkpoint-timeline__controls{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.checkpoint-timeline__time-toggle{display:inline-flex;gap:3px;padding:3px;background:#0a1625;border:1px solid #35516c;border-radius:999px}
+.checkpoint-timeline__time-toggle button{font:inherit;font-size:10px;font-weight:700;color:#8eabc7;background:transparent;border:0;border-radius:999px;padding:7px 11px;cursor:pointer;transition:background .2s,color .2s}
+.checkpoint-timeline__time-toggle button[aria-pressed="true"]{background:#24466a;color:#d8efff}
+.checkpoint-timeline__time-toggle button:focus-visible{outline:2px solid #85ceff;outline-offset:2px}
+@media(max-width:620px){.checkpoint-timeline__controls{justify-content:flex-start}}
+@media(prefers-reduced-motion:reduce){.checkpoint-timeline__time-toggle button{transition:none}}
