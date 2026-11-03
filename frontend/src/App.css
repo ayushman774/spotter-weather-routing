@@ -841,3 +841,32 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Material UI visual refinements */
+.mui-planning-form{gap:17px}
+.mui-planning-form .MuiTextField-root,.mui-planning-form .MuiFormControl-root{min-width:0}
+.mui-planning-form .MuiOutlinedInput-root{min-height:52px;font-size:13px}
+.mui-planning-form .MuiInputAdornment-root{color:#91a7c0}
+.mui-planning-form .MuiInputLabel-root{font-size:13px}
+.mui-planning-form .MuiSelect-select{font-size:12px;padding-top:16px;padding-bottom:16px}
+.mui-planning-form .MuiMenuItem-root{font-size:12px}
+.mui-planning-form .MuiInputBase-input[type="datetime-local"]{color-scheme:dark}
+.mui-planning-form .MuiInputBase-input[type="number"]{min-width:0}
+.mui-planning-form .journey-connector{height:8px;display:flex;align-items:center;justify-content:flex-start;margin:-7px 0 -7px 20px;color:#6c9ec7;transform:rotate(90deg)}
+.mui-planning-form .checkpoint-select-label{position:absolute;bottom:-14px;left:2px;font-size:9px;letter-spacing:.6px;color:#829bb6}
+.mui-planning-form .mui-analyze-button{margin-top:14px;min-height:52px;background:linear-gradient(105deg,#318fe8,#67b8ff);color:#071320;font-size:13px;font-weight:800;box-shadow:0 10px 30px #2c8ae62c}
+.mui-planning-form .mui-analyze-button:hover{background:linear-gradient(105deg,#4da4f7,#8ac9ff)}
+.mui-planning-form .form-footnote{display:flex;align-items:center;justify-content:center;gap:7px;text-align:center;line-height:1.5}
+.mui-recommended-chip{font-size:9px!important;font-weight:800!important;letter-spacing:.4px;border-color:#3b8e72!important;color:#83e9bd!important;background:#13352c!important;height:25px!important}
+.mui-recommended-chip .MuiChip-icon{color:#83e9bd!important;font-size:14px!important}
+.route-card{transition:border-color .18s ease,transform .18s ease,background .18s ease}
+.route-card:hover{transform:translateY(-2px);border-color:#5d93c3}
+.route-card:focus-visible{outline:2px solid #7cc8ff;outline-offset:2px}
+.route-card-name{display:inline-flex;align-items:center;gap:8px}
+.route-card-name svg{flex-shrink:0}
+.brand-icon svg,.avatar svg,.info-icon svg,.orbit-center svg{display:block}
+.stage-label{display:inline-flex;align-items:center;gap:8px}
+.live-dot-icon{color:#50e1a6;font-size:13px;vertical-align:middle}
+.footer-diamond{vertical-align:middle;margin-right:6px}
+.empty-symbol svg{width:28px;height:28px}
+@media(max-width:560px){.mui-planning-form .form-columns{grid-template-columns:1fr;gap:24px}.mui-planning-form .MuiOutlinedInput-root{min-height:50px}.mui-recommended-chip{font-size:8px!important}}
