@@ -60,6 +60,8 @@ type Route = {
 };
 
 type PlanResponse = {
+  origin?: { name?: string };
+  destination?: { name?: string };
   routes: Route[];
   route_count: number;
   recommended_route_id: string | null;
@@ -678,6 +680,8 @@ function App() {
                 key={selected.id}
                 checkpoints={selected.checkpoints ?? []}
                 routeLabel={`Route ${selected.safety_rank ?? result.routes.indexOf(selected) + 1}`}
+                originName={result.origin?.name}
+                destinationName={result.destination?.name}
               />
             )}
             <div className="bottom-info">
