@@ -4,6 +4,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from routing.serializers import RoutePlanSerializer
+from routing.services.route_scoring import assess_route, rank_routes
+from routing.services.weather import WeatherProviderError
 from routing.services.checkpoints import (
     METERS_PER_MILE,
     generate_checkpoints,
@@ -69,6 +71,19 @@ def plan_routes(request):
                 ],
             })
 
+        recommended_route_id = None
+        if data["assess_weather"]:
+            for route in routes:
+                enriched, summary = assess_route(
+                    route["checkpoints"], data["load_weight_lb"]
+                )
+                route["checkpoints"] = enriched
+                route["risk_summary"] = summary.to_dict()
+            routes = rank_routes(routes)
+            for rank, route in enumerate(routes, start=1):
+                route["safety_rank"] = rank
+            recommended_route_id = routes[0]["id"] if routes else None
+
         return Response({
             "origin": {
                 "name": origin.name,
@@ -92,8 +107,15 @@ def plan_routes(request):
             "route_count": len(routes),
             "requested_route_count": 3,
             "all_requested_routes_available": len(routes) >= 3,
-            "weather_assessed": False,
+            "weather_assessed": data["assess_weather"],
+            "recommended_route_id": recommended_route_id,
         })
+
+    except WeatherProviderError:
+        return Response(
+            {"error": "Weather forecast unavailable for one or more checkpoints."},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
 
     except RoutingProviderError as exc:
         return Response(
