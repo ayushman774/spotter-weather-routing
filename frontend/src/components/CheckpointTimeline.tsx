@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { FiClock, FiCloud, FiMapPin, FiShield } from "react-icons/fi";
 
 type Checkpoint = {
@@ -12,6 +13,8 @@ type Checkpoint = {
 type Props = {
   checkpoints: Checkpoint[];
   routeLabel: string;
+  originName?: string;
+  destinationName?: string;
 };
 
 function numeric(weather: Record<string, unknown> | undefined, keys: string[]) {
@@ -22,7 +25,7 @@ function numeric(weather: Record<string, unknown> | undefined, keys: string[]) {
   return null;
 }
 
-function timestamp(value: string) {
+function timestamp(value: string, timeZone?: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? "ETA unavailable"
@@ -32,6 +35,7 @@ function timestamp(value: string) {
         hour: "numeric",
         minute: "2-digit",
         timeZoneName: "short",
+        ...(timeZone ? { timeZone } : {}),
       });
 }
 
@@ -48,7 +52,11 @@ function riskTone(level?: string) {
     : "unknown";
 }
 
-export default function CheckpointTimeline({ checkpoints, routeLabel }: Props) {
+export default function CheckpointTimeline({ checkpoints, routeLabel, originName, destinationName }: Props) {
+  const [timeMode, setTimeMode] = useState<"route" | "device">("route");
+  const coloradoRoute = [originName, destinationName].some((name) => /\b(denver|colorado springs|colorado|\bco\b)\b/i.test(name ?? ""));
+  const routeTimeZone = coloradoRoute ? "America/Denver" : undefined;
+  const activeTimeZone = timeMode === "route" ? routeTimeZone : undefined;
   return (
     <section className="checkpoint-timeline" aria-label="Checkpoint weather timeline">
       <div className="checkpoint-timeline__heading">
@@ -59,9 +67,15 @@ export default function CheckpointTimeline({ checkpoints, routeLabel }: Props) {
           <h3>Checkpoint weather timeline</h3>
           <p>Arrival estimates and available forecast readings for {routeLabel}.</p>
         </div>
-        <span className="checkpoint-timeline__count">
-          {checkpoints.length} CHECKPOINTS
-        </span>
+        <div className="checkpoint-timeline__controls">
+          {routeTimeZone && (
+            <div className="checkpoint-timeline__time-toggle" role="group" aria-label="Checkpoint time zone">
+              <button type="button" aria-pressed={timeMode === "route"} onClick={() => setTimeMode("route")}>Colorado time</button>
+              <button type="button" aria-pressed={timeMode === "device"} onClick={() => setTimeMode("device")}>My time</button>
+            </div>
+          )}
+          <span className="checkpoint-timeline__count">{checkpoints.length} CHECKPOINTS</span>
+        </div>
       </div>
       {checkpoints.length === 0 ? (
         <div className="checkpoint-timeline__empty">
@@ -88,7 +102,7 @@ export default function CheckpointTimeline({ checkpoints, routeLabel }: Props) {
                     </span>
                   </div>
                   <div className="checkpoint-timeline__details">
-                    <span><FiClock /> {timestamp(checkpoint.eta)}</span>
+                    <span><FiClock /> {timestamp(checkpoint.eta, activeTimeZone)}</span>
                     {typeof checkpoint.distance_miles === "number" && (
                       <span><FiMapPin /> {checkpoint.distance_miles.toFixed(1)} mi along route</span>
                     )}
@@ -109,7 +123,7 @@ export default function CheckpointTimeline({ checkpoints, routeLabel }: Props) {
       )}
       <p className="checkpoint-timeline__disclaimer">
         Weather readings come from the routing API. Missing readings are shown as —.
-        Times are displayed in your device time zone.
+        {routeTimeZone ? "Colorado time uses the America/Denver time zone (MST/MDT as applicable). Switch to My time to view device-local times." : "Times are displayed in your device time zone. Route-local time zone is not available for this journey."}
       </p>
     </section>
   );
