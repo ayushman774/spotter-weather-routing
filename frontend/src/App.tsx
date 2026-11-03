@@ -1,4 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type CSSProperties } from "react";
+import { Alert, Box, Button, Chip, CircularProgress, FormControl, InputAdornment, MenuItem, Select, TextField, ThemeProvider, createTheme } from "@mui/material";
+import { FiActivity, FiArrowRight, FiCheckCircle, FiCloud, FiCompass, FiMapPin, FiNavigation, FiShield, FiTruck, FiZap } from "react-icons/fi";
 import "./App.css";
 import RouteMap from "./components/RouteMap";
 
@@ -37,6 +39,7 @@ type PlanResponse = {
 };
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const theme = createTheme({ palette: { mode: "dark", primary: { main: "#61b7ff" }, background: { default: "#080e19", paper: "#121f30" }, text: { primary: "#eef6ff", secondary: "#9bb0c8" } }, shape: { borderRadius: 12 }, typography: { fontFamily: '"DM Sans", sans-serif', button: { textTransform: "none", fontWeight: 700 } }, components: { MuiOutlinedInput: { styleOverrides: { root: { backgroundColor: "#121f30", "& fieldset": { borderColor: "#2a3b50" }, "&:hover fieldset": { borderColor: "#568cb9" } } } }, MuiInputLabel: { styleOverrides: { root: { color: "#91a7c0" } } } } });
 const routeColors = ["#4c9bff", "#f7b75e", "#a99df7"];
 
 function formatDuration(minutes: number) {
@@ -119,10 +122,11 @@ function App() {
   }
 
   return (
+    <ThemeProvider theme={theme}>
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-icon">◈</span>
+          <span className="brand-icon"><FiNavigation /></span>
           <span>
             spotter<span className="brand-accent">.</span>
             <span className="brand-light">ai</span>
@@ -133,9 +137,9 @@ function App() {
         <div className="header-right">
           <span className="header-caption">WEATHER-AWARE ROUTING PLATFORM</span>
           <span className="status-pill">
-            <span className="status-dot" /> Intelligence online
+            <span className="status-dot" /> Weather intelligence
           </span>
-          <span className="avatar">S</span>
+          <span className="avatar"><FiTruck /></span>
         </div>
       </header>
 
@@ -155,101 +159,29 @@ function App() {
             load-aware risk analysis.
           </p>
 
-          <form onSubmit={analyze} className="planning-form">
-            <div className="form-heading">
-              <span>JOURNEY DETAILS</span>
-              <span className="form-heading-line" />
-            </div>
-            <label className="input-group">
-              <span className="field-label">ORIGIN</span>
-              <span className="field-wrap">
-                <span className="point-marker origin-marker" />
-                <input
-                  required
-                  minLength={3}
-                  value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
-                  placeholder="Enter starting location"
-                />
-              </span>
-            </label>
-            <div className="connection-line">
-              <span>↓</span>
-            </div>
-            <label className="input-group">
-              <span className="field-label">DESTINATION</span>
-              <span className="field-wrap">
-                <span className="point-marker destination-marker" />
-                <input
-                  required
-                  minLength={3}
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  placeholder="Enter destination"
-                />
-              </span>
-            </label>
-            <label className="input-group departure-group">
-              <span className="field-label">DEPARTURE · YOUR LOCAL TIME</span>
-              <span className="field-wrap">
-                <span className="field-symbol">◷</span>
-                <input
-                  required
-                  type="datetime-local"
-                  value={departure}
-                  onChange={(e) => setDeparture(e.target.value)}
-                />
-              </span>
-            </label>
+          <form onSubmit={analyze} className="planning-form mui-planning-form">
+            <div className="form-heading"><span>JOURNEY DETAILS</span><span className="form-heading-line" /></div>
+            <TextField fullWidth required label="Origin" value={origin} onChange={(event) => setOrigin(event.target.value)} inputProps={{ minLength: 3 }} placeholder="Enter starting location" InputProps={{ startAdornment: <InputAdornment position="start"><FiMapPin color="#61b7ff" /></InputAdornment> }} />
+            <Box className="journey-connector"><FiArrowRight /></Box>
+            <TextField fullWidth required label="Destination" value={destination} onChange={(event) => setDestination(event.target.value)} inputProps={{ minLength: 3 }} placeholder="Enter destination" InputProps={{ startAdornment: <InputAdornment position="start"><FiNavigation color="#f5ad67" /></InputAdornment> }} />
+            <TextField fullWidth required label="Departure · your local time" type="datetime-local" value={departure} onChange={(event) => setDeparture(event.target.value)} InputLabelProps={{ shrink: true }} />
             <div className="form-columns">
-              <label className="input-group">
-                <span className="field-label">LOAD WEIGHT (LB)</span>
-                <span className="field-wrap">
-                  <span className="field-symbol">▤</span>
-                  <input
-                    required
-                    min={0}
-                    step={1}
-                    type="number"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                  />
-                </span>
-              </label>
-              <label className="input-group">
-                <span className="field-label">CHECKPOINTS</span>
-                <span className="field-wrap select-wrap">
-                  <select
-                    value={interval}
-                    onChange={(e) => setIntervalMiles(e.target.value)}
-                  >
-                    <option value="10">Every 10 mi</option>
-                    <option value="25">Every 25 mi</option>
-                    <option value="50">Every 50 mi</option>
-                  </select>
-                </span>
-              </label>
+              <TextField fullWidth required label="Load weight (lb)" type="number" value={weight} onChange={(event) => setWeight(event.target.value)} inputProps={{ min: 0, step: 1 }} InputProps={{ startAdornment: <InputAdornment position="start"><FiTruck /></InputAdornment> }} />
+              <FormControl fullWidth>
+                <Select aria-label="Checkpoint interval" value={interval} onChange={(event) => setIntervalMiles(event.target.value)}>
+                  <MenuItem value="10">Every 10 mi</MenuItem><MenuItem value="25">Every 25 mi</MenuItem><MenuItem value="50">Every 50 mi</MenuItem>
+                </Select>
+                <span className="checkpoint-select-label">CHECKPOINT INTERVAL</span>
+              </FormControl>
             </div>
-            <button className="analyze-button" disabled={loading} type="submit">
-              <span className="button-spark">✦</span>
-              <span>
-                {loading
-                  ? "Analyzing weather & routes…"
-                  : "Analyze safest routes"}
-              </span>
-              <span className="button-arrow">↗</span>
-            </button>
-            <div className="form-footnote">
-              <span className="footnote-dot" /> Powered by live routing and
-              weather forecasts
-            </div>
+            <Button variant="contained" size="large" fullWidth disabled={loading} type="submit" startIcon={loading ? <CircularProgress size={17} color="inherit" /> : <FiZap />} endIcon={!loading ? <FiArrowRight /> : undefined} className="mui-analyze-button">
+              {loading ? "Analyzing routes…" : "Analyze safest routes"}
+            </Button>
+            <div className="form-footnote"><FiCloud /> Forecasts evaluated at checkpoint arrival times</div>
           </form>
 
           {error && (
-            <div className="error-panel" role="alert">
-              <strong>Analysis unavailable</strong>
-              <p>{error}</p>
-            </div>
+            <Alert severity="error" variant="outlined"><strong>Analysis unavailable</strong><p>{error}</p></Alert>
           )}
 
           <div className="results-heading">
@@ -263,7 +195,7 @@ function App() {
           </div>
           {!result && !loading && (
             <div className="empty-results">
-              <span className="empty-symbol">⌁</span>
+              <span className="empty-symbol"><FiCompass /></span>
               <p>
                 Your route comparisons will appear here once you analyze a
                 journey.
@@ -296,16 +228,16 @@ function App() {
                       {
                         "--route-color":
                           routeColors[index % routeColors.length],
-                      } as React.CSSProperties
+                      } as CSSProperties
                     }
                   >
                     <div className="route-card-top">
                       <span className="route-card-name">
-                        <span className="route-line-icon" /> Route{" "}
+                        <FiNavigation className="route-line-icon" /> Route{" "}
                         {route.safety_rank ?? index + 1}
                       </span>
                       {recommended && (
-                        <span className="recommended-badge">✦ RECOMMENDED</span>
+                        <Chip icon={<FiCheckCircle />} label="RECOMMENDED" size="small" color="success" variant="outlined" className="mui-recommended-chip" />
                       )}
                     </div>
                     <div className="route-card-metrics">
@@ -352,7 +284,7 @@ function App() {
             </div>
           )}
           <div className="sidebar-footer">
-            <span className="footer-diamond">◇</span> BUILT FOR CONFIDENT
+            <FiShield className="footer-diamond" /> BUILT FOR CONFIDENT
             DECISIONS <span>V 1.0</span>
           </div>
         </aside>
@@ -369,7 +301,7 @@ function App() {
               </h2>
             </div>
             <div className="map-meta">
-              <span className="live-dot" />{" "}
+              <FiActivity className="live-dot-icon" />{" "}
               {result ? "LIVE ROUTING DATA" : "AWAITING ROUTE DATA"}
             </div>
           </div>
@@ -379,7 +311,7 @@ function App() {
             <div className="map-glow map-glow-one" />
             <div className="map-glow map-glow-two" />
             <div className="map-stage-top">
-              <span className="stage-label">GEOSPATIAL INTELLIGENCE</span>
+              <span className="stage-label"><FiCompass /> GEOSPATIAL INTELLIGENCE</span>
               {!result && <span className="stage-coordinates">MAP READY</span>}
             </div>
             {!result && (
@@ -387,7 +319,7 @@ function App() {
                 <div className="orbit">
                   <span className="orbit-ring orbit-ring-one" />
                   <span className="orbit-ring orbit-ring-two" />
-                  <span className="orbit-center">⌖</span>
+                  <span className="orbit-center"><FiNavigation /></span>
                 </div>
                 <div className="map-empty-eyebrow">
                   YOUR JOURNEY STARTS HERE
@@ -427,21 +359,21 @@ function App() {
           </div>
           <div className="bottom-info">
             <div className="info-card">
-              <span className="info-icon blue">↗</span>
+              <span className="info-icon blue"><FiNavigation /></span>
               <div>
                 <strong>Real route alternatives</strong>
                 <p>Road-network routing, not straight-line estimates.</p>
               </div>
             </div>
             <div className="info-card">
-              <span className="info-icon amber">☁</span>
+              <span className="info-icon amber"><FiCloud /></span>
               <div>
                 <strong>Forecast at arrival</strong>
                 <p>Conditions evaluated at each checkpoint ETA.</p>
               </div>
             </div>
             <div className="info-card">
-              <span className="info-icon green">◇</span>
+              <span className="info-icon green"><FiShield /></span>
               <div>
                 <strong>Safety-first decisions</strong>
                 <p>Weather exposure ranked before travel time.</p>
@@ -451,6 +383,7 @@ function App() {
         </main>
       </div>
     </div>
+    </ThemeProvider>
   );
 }
 
