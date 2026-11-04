@@ -576,7 +576,7 @@ function App() {
               <section
                 className="risk-intelligence"
                 aria-label="Selected route risk intelligence"
-                key={selected.id}
+                key={`risk-${selected.id}`}
               >
                 <div className="risk-intelligence__header">
                   <div>
@@ -684,7 +684,7 @@ function App() {
             )}
             {result && selected && (
               <CheckpointTimeline
-                key={selected.id}
+                key={`timeline-${selected.id}`}
                 checkpoints={selected.checkpoints ?? []}
                 selectedCheckpointIndex={selectedCheckpointIndex}
                 onCheckpointSelect={setSelectedCheckpointIndex}
