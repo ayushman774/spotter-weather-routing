@@ -475,7 +475,9 @@ export default function RouteMap({
 
   useEffect(() => {
     const instance = map.current;
-    if (!instance || !instance.isStyleLoaded()) return;
+    // isStyleLoaded() can be false while corridor GeoJSON is refreshing.
+    // Route layers already exist, so selection must not be skipped.
+    if (!instance || !instance.getLayer("selected-navigation-line")) return;
     routes.forEach((route, index) => {
       if (!instance.getLayer(`route-line-${index}`)) return;
       const active = route.id === selectedId;
