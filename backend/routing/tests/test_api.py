@@ -131,3 +131,169 @@ class OpenRouteServiceFallbackTests(SimpleTestCase):
         post.return_value = self.provider_response(200, {"features": [{"id": "alternative"}]})
         self.assertEqual(len(self.client.get_routes(self.origin, self.destination)), 1)
         self.assertEqual(post.call_count, 1)
+
+
+class WeatherRiskRegressionTests(SimpleTestCase):
+    """Deterministic hazardous-weather tests; never call live forecast providers."""
+
+    def test_wind_threshold_boundaries(self):
+        from routing.services.risk import RiskLevel, classify_wind
+
+        for speed, expected in (
+            (24.99, RiskLevel.LOW),
+            (25, RiskLevel.MODERATE),
+            (35, RiskLevel.HIGH),
+            (45, RiskLevel.SEVERE),
+            (55, RiskLevel.NO_TRAVEL),
+        ):
+            with self.subTest(speed=speed):
+                self.assertEqual(classify_wind(speed), expected)
+
+    def test_rain_threshold_boundaries(self):
+        from routing.services.risk import RiskLevel, classify_rain
+
+        for rate, expected in (
+            (0.09, RiskLevel.LOW),
+            (0.10, RiskLevel.MODERATE),
+            (0.25, RiskLevel.HIGH),
+            (0.50, RiskLevel.SEVERE),
+            (1.0, RiskLevel.SEVERE),
+            (1.01, RiskLevel.NO_TRAVEL),
+        ):
+            with self.subTest(rate=rate):
+                self.assertEqual(classify_rain(rate), expected)
+
+    def test_snow_threshold_boundaries(self):
+        from routing.services.risk import RiskLevel, classify_snow
+
+        for rate, expected in (
+            (0.49, RiskLevel.LOW),
+            (0.50, RiskLevel.MODERATE),
+            (1.0, RiskLevel.HIGH),
+            (2.0, RiskLevel.SEVERE),
+            (3.0, RiskLevel.SEVERE),
+            (3.01, RiskLevel.NO_TRAVEL),
+        ):
+            with self.subTest(rate=rate):
+                self.assertEqual(classify_snow(rate), expected)
+
+    def test_heavy_load_wind_escalation(self):
+        from routing.services.risk import (
+            RiskLevel, WeatherConditions, assess_weather_risk,
+        )
+
+        windy = WeatherConditions(45, 0, 0)
+        self.assertEqual(assess_weather_risk(windy, 30000).level, RiskLevel.SEVERE)
+        assessed = assess_weather_risk(windy, 30001)
+        self.assertEqual(assessed.level, RiskLevel.NO_TRAVEL)
+        self.assertTrue(assessed.reasons)
+
+        high_wind = WeatherConditions(35, 0, 0)
+        self.assertEqual(assess_weather_risk(high_wind, 40000).level, RiskLevel.HIGH)
+        self.assertEqual(assess_weather_risk(high_wind, 40001).level, RiskLevel.SEVERE)
+
+    def test_combined_hazards_use_highest_risk(self):
+        from routing.services.risk import (
+            RiskLevel, WeatherConditions, assess_weather_risk,
+        )
+
+        assessment = assess_weather_risk(
+            WeatherConditions(wind_mph=36, rain_in_per_hr=0.6, snow_in_per_hr=0.5),
+            load_weight_lb=18000,
+        )
+        self.assertEqual(assessment.wind_risk, RiskLevel.HIGH)
+        self.assertEqual(assessment.rain_risk, RiskLevel.SEVERE)
+        self.assertEqual(assessment.snow_risk, RiskLevel.MODERATE)
+        self.assertEqual(assessment.level, RiskLevel.SEVERE)
+
+    def test_invalid_weather_never_defaults_to_low(self):
+        from routing.services.risk import WeatherConditions, assess_weather_risk
+
+        for conditions in (
+            WeatherConditions(float("nan"), 0, 0),
+            WeatherConditions(float("inf"), 0, 0),
+            WeatherConditions(0, -0.1, 0),
+            WeatherConditions(0, 0, -1),
+        ):
+            with self.subTest(conditions=conditions):
+                with self.assertRaises(ValueError):
+                    assess_weather_risk(conditions, 40000)
+
+    def test_checkpoint_exposure_and_risk_summary(self):
+        from datetime import datetime, timezone
+
+        from routing.services.risk import WeatherConditions
+        from routing.services.route_scoring import assess_route
+        from routing.services.weather import CheckpointForecast
+
+        conditions = [
+            WeatherConditions(5, 0, 0),
+            WeatherConditions(36, 0, 0),
+            WeatherConditions(55, 0, 0),
+        ]
+        checkpoints = [
+            {
+                "latitude": 41.0,
+                "longitude": -105.0 + i,
+                "eta": "2026-11-04T12:00:00+00:00",
+                "distance_miles": float(i * 10),
+            }
+            for i in range(3)
+        ]
+        provider = Mock()
+        provider.get_forecast.side_effect = [
+            CheckpointForecast(
+                requested_eta=datetime(2026, 11, 4, 12, tzinfo=timezone.utc).isoformat(),
+                forecast_time=datetime(2026, 11, 4, 12, tzinfo=timezone.utc).isoformat(),
+                conditions=condition,
+            )
+            for condition in conditions
+        ]
+        enriched, summary = assess_route(checkpoints, 18000, weather_client=provider)
+        self.assertEqual([cp["risk"]["level"] for cp in enriched],
+                         ["LOW", "HIGH", "NO_TRAVEL"])
+        self.assertEqual([cp["represented_miles"] for cp in enriched],
+                         [5.0, 10.0, 5.0])
+        self.assertEqual(summary.high_miles, 10.0)
+        self.assertEqual(summary.severe_miles, 5.0)
+        self.assertEqual(summary.no_travel_miles, 5.0)
+        self.assertAlmostEqual(summary.average_risk, 2.0)
+        self.assertEqual(provider.get_forecast.call_count, 3)
+
+    def test_weather_provider_failure_is_not_silently_ignored(self):
+        from routing.services.route_scoring import assess_route
+        from routing.services.weather import WeatherProviderError
+
+        checkpoints = [
+            {"latitude": 41.0, "longitude": -105.0,
+             "eta": "2026-11-04T12:00:00+00:00", "distance_miles": 0.0},
+            {"latitude": 42.0, "longitude": -104.0,
+             "eta": "2026-11-04T13:00:00+00:00", "distance_miles": 10.0},
+        ]
+        provider = Mock()
+        provider.get_forecast.side_effect = WeatherProviderError("Forecast unavailable")
+        with self.assertRaises(WeatherProviderError):
+            assess_route(checkpoints, 40000, weather_client=provider)
+
+    def test_ranking_prefers_safe_route_over_faster_hazardous_route(self):
+        from routing.services.route_scoring import rank_routes
+
+        safe = {
+            "id": "safe", "duration_minutes": 180,
+            "risk_summary": {"no_travel_miles": 0, "severe_miles": 0,
+                             "high_miles": 0, "average_risk": 0},
+        }
+        severe = {
+            "id": "severe", "duration_minutes": 60,
+            "risk_summary": {"no_travel_miles": 0, "severe_miles": 20,
+                             "high_miles": 0, "average_risk": 3},
+        }
+        no_travel = {
+            "id": "no-travel", "duration_minutes": 30,
+            "risk_summary": {"no_travel_miles": 10, "severe_miles": 10,
+                             "high_miles": 0, "average_risk": 4},
+        }
+        self.assertEqual(
+            [route["id"] for route in rank_routes([no_travel, severe, safe])],
+            ["safe", "severe", "no-travel"],
+        )
