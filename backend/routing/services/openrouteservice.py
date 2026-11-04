@@ -46,28 +46,7 @@ class OpenRouteServiceClient:
             response.raise_for_status()
             features = response.json().get("features", [])
 
-        except httpx.HTTPStatusError as exc:
-            code = exc.response.status_code
-            logger.warning(
-                "ORS geocoding rejected request: status=%s",
-                code,
-            )
-            raise RoutingProviderError(
-                "Unable to geocode the requested location."
-            ) from exc
-        except httpx.RequestError as exc:
-            logger.warning(
-                "ORS geocoding request failed: type=%s",
-                type(exc).__name__,
-            )
-            raise RoutingProviderError(
-                "Unable to geocode the requested location."
-            ) from exc
-        except (ValueError, TypeError, AttributeError) as exc:
-            logger.warning(
-                "ORS geocoding returned invalid response: type=%s",
-                type(exc).__name__,
-            )
+        except (httpx.HTTPError, ValueError) as exc:
             raise RoutingProviderError(
                 "Unable to geocode the requested location."
             ) from exc
