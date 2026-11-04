@@ -10,7 +10,7 @@ from routing.services.risk import WeatherConditions
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 CM_PER_INCH = 2.54
 MAX_CACHE_ENTRIES = 2048
-MAX_FORECAST_DAYS = 16
+MAX_FORECAST_DAYS = 15
 BATCH_SIZE = 25
 
 
@@ -110,7 +110,7 @@ class OpenMeteoClient:
         days = (latest_eta.date() - today).days + 1 if latest_eta else 1
         if days < 1 or days > MAX_FORECAST_DAYS:
             raise WeatherProviderError(
-                "Checkpoint arrival is outside the available 16-day weather forecast window."
+                "Checkpoint arrival is outside the available 15-day weather forecast window."
             )
 
         for start in range(0, len(coordinates), BATCH_SIZE):
