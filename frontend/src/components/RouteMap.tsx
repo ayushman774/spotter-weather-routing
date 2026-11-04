@@ -345,7 +345,7 @@ export default function RouteMap({
         instance.setPaintProperty(
           `route-line-${index}`,
           "line-color",
-          active ? colors[0] : colors[index % colors.length],
+          active ? colors[0] : "#526477",
         );
         instance.setPaintProperty(
           `route-line-${index}`,
@@ -458,7 +458,7 @@ export default function RouteMap({
       instance.setPaintProperty(
         `route-line-${index}`,
         "line-color",
-        active ? colors[0] : colors[index % colors.length],
+        active ? colors[0] : "#526477",
       );
       instance.setPaintProperty(
         `route-line-${index}`,
