@@ -12,3 +12,7 @@ htmlcov/
 !.env.example
 .DS_Store
 Thumbs.db
+
+# Generated backend files
+backend/installed-packages.txt
+backend/staticfiles/
