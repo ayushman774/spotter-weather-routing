@@ -1,9 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+import httpx
 
 from django.test import SimpleTestCase
 from rest_framework.test import APIClient
 
-from routing.services.openrouteservice import Location, RoutingProviderError
+from routing.services.openrouteservice import Location, OpenRouteServiceClient, RoutingProviderError
 
 
 class RoutingApiTests(SimpleTestCase):
@@ -83,3 +85,49 @@ class RouteRankingTests(SimpleTestCase):
             },
         }
         self.assertEqual(rank_routes([unsafe, safer])[0]["id"], "safer")
+
+
+class OpenRouteServiceFallbackTests(SimpleTestCase):
+    def setUp(self):
+        self.client = OpenRouteServiceClient(api_key="test-key")
+        self.origin = Location("Chicago", -87.6298, 41.8781)
+        self.destination = Location("Minneapolis", -93.2650, 44.9778)
+
+    @staticmethod
+    def provider_response(status_code, body=None):
+        request = httpx.Request("POST", "https://api.openrouteservice.org/v2/directions/driving-hgv/geojson")
+        return httpx.Response(status_code, request=request, json=body or {})
+
+    @patch("routing.services.openrouteservice.httpx.post")
+    def test_retries_without_alternatives_after_400(self, post):
+        successful = self.provider_response(200, {"features": [{"id": "single-hgv-route"}]})
+        post.side_effect = [self.provider_response(400), successful]
+        routes = self.client.get_routes(self.origin, self.destination)
+        self.assertEqual(routes, [{"id": "single-hgv-route"}])
+        self.assertEqual(post.call_count, 2)
+        self.assertIn("alternative_routes", post.call_args_list[0].kwargs["json"])
+        self.assertNotIn("alternative_routes", post.call_args_list[1].kwargs["json"])
+        self.assertEqual(
+            post.call_args_list[1].kwargs["json"]["coordinates"],
+            [[-87.6298, 41.8781], [-93.265, 44.9778]],
+        )
+
+    @patch("routing.services.openrouteservice.httpx.post")
+    def test_does_not_retry_other_provider_errors(self, post):
+        post.return_value = self.provider_response(403)
+        with self.assertRaisesRegex(RoutingProviderError, "HTTP 403"):
+            self.client.get_routes(self.origin, self.destination)
+        self.assertEqual(post.call_count, 1)
+
+    @patch("routing.services.openrouteservice.httpx.post")
+    def test_second_400_is_reported_without_more_retries(self, post):
+        post.return_value = self.provider_response(400)
+        with self.assertRaisesRegex(RoutingProviderError, "HTTP 400"):
+            self.client.get_routes(self.origin, self.destination)
+        self.assertEqual(post.call_count, 2)
+
+    @patch("routing.services.openrouteservice.httpx.post")
+    def test_successful_alternatives_do_not_retry(self, post):
+        post.return_value = self.provider_response(200, {"features": [{"id": "alternative"}]})
+        self.assertEqual(len(self.client.get_routes(self.origin, self.destination)), 1)
+        self.assertEqual(post.call_count, 1)
