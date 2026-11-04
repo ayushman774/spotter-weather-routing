@@ -286,16 +286,13 @@ Deploy the `frontend` directory as a Vite application and configure `VITE_API_BA
 
 - [x] Source repository: https://github.com/ayushman774/spotter-weather-routing
 - [x] Hosted application: https://spotter-weather-routing-beige.vercel.app/
-- [x] Loom walkthrough recording (user-confirmed): **Loom video URL to be added before submission**
+- [x] Loom walkthrough recordings (two parts):
+  - [Part 1 — Loom walkthrough](https://www.loom.com/share/e279a0a089da417785d4f6f7ec6c6154)
+  - [Part 2 — Loom walkthrough](https://www.loom.com/share/4c0044f6853443c097bd753221e2a2ec)
 
-### Walkthrough outline (recorded video; link pending)
+### Video walkthrough
 
-1. **0:00–1:00:** Goal, stack, and architecture
-2. **1:00–2:30:** Enter trip details; explain 10/25/50-mile sampling and checkpoint ETAs
-3. **2:30–4:00:** Compare routes and demonstrate load-adjusted weather risk and safest-route recommendation
-4. **4:00–5:30:** Select alternative routes; show map highlight and checkpoint details
-5. **5:30–7:00:** Show/hide heatmap and move the 0–48-hour slider
-6. **7:00–8:30:** Explain Django endpoints, risk ranking, tests, provider limitations, and deployment
+The assessment walkthrough is provided in two Loom recordings linked above. Watch **Part 1**, followed by **Part 2**. The links were supplied by the project author; video content and accessibility have not been independently verified here.
 
 ---
 
