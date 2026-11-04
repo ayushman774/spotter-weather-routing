@@ -2,6 +2,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from math import isfinite
+import logging
 
 import httpx
 
@@ -11,6 +12,8 @@ FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 CM_PER_INCH = 2.54
 MAX_CACHE_ENTRIES = 2048
 BATCH_SIZE = 25
+MAX_PROVIDER_ATTEMPTS = 2
+logger = logging.getLogger(__name__)
 
 
 class WeatherProviderError(Exception):
@@ -75,12 +78,18 @@ class OpenMeteoClient:
                     if moment.tzinfo is None
                     else moment.astimezone(timezone.utc)
                 )
-                wind = float(winds[index])
-                rain = float(rains[index])
-                snow = float(snows[index]) / CM_PER_INCH
+                try:
+                    wind = float(winds[index])
+                    rain = float(rains[index])
+                    snow = float(snows[index]) / CM_PER_INCH
+                except (TypeError, ValueError, OverflowError):
+                    # Only valid hours may be used for a checkpoint.
+                    continue
                 if any(not isfinite(v) or v < 0 for v in (wind, rain, snow)):
-                    raise ValueError("Invalid forecast measurement.")
+                    continue
                 parsed.append((moment, WeatherConditions(wind, rain, snow)))
+            if not parsed:
+                raise ValueError("No valid hourly measurements.")
             return parsed
         except (KeyError, TypeError, ValueError, OverflowError) as exc:
             raise WeatherProviderError("Forecast data unavailable for checkpoint ETA.") from exc
@@ -112,13 +121,30 @@ class OpenMeteoClient:
                 "timezone": "UTC",
                 "forecast_days": 3,
             }
-            try:
-                with httpx.Client(timeout=15, transport=self.transport) as client:
-                    response = client.get(FORECAST_URL, params=params)
-                    response.raise_for_status()
-                    payload = response.json()
-            except (httpx.HTTPError, ValueError) as exc:
-                raise WeatherProviderError("Weather forecast request failed.") from exc
+            payload = None
+            for attempt in range(1, MAX_PROVIDER_ATTEMPTS + 1):
+                try:
+                    with httpx.Client(timeout=15, transport=self.transport) as client:
+                        response = client.get(FORECAST_URL, params=params)
+                        response.raise_for_status()
+                        payload = response.json()
+                    break
+                except httpx.HTTPStatusError as exc:
+                    code = exc.response.status_code
+                    retryable = code == 429 or 500 <= code <= 599
+                    logger.warning(
+                        "Open-Meteo request failed: status=%s, attempt=%s, batch_size=%s",
+                        code, attempt, len(batch),
+                    )
+                    if not retryable or attempt == MAX_PROVIDER_ATTEMPTS:
+                        raise WeatherProviderError("Weather forecast request failed.") from exc
+                except (httpx.RequestError, ValueError) as exc:
+                    logger.warning(
+                        "Open-Meteo request failed: type=%s, attempt=%s, batch_size=%s",
+                        type(exc).__name__, attempt, len(batch),
+                    )
+                    if attempt == MAX_PROVIDER_ATTEMPTS:
+                        raise WeatherProviderError("Weather forecast request failed.") from exc
 
             if len(batch) == 1:
                 if not isinstance(payload, dict):
