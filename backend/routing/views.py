@@ -1,9 +1,13 @@
+from datetime import datetime, timedelta
+from math import isfinite
+
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from routing.serializers import RoutePlanSerializer
 from routing.services.route_scoring import assess_route, rank_routes
+from routing.services.risk import assess_weather_risk
 from routing.services.weather import OpenMeteoClient, WeatherProviderError
 from routing.services.checkpoints import METERS_PER_MILE, generate_checkpoints
 from routing.services.openrouteservice import OpenRouteServiceClient, RoutingProviderError
@@ -116,3 +120,59 @@ def plan_routes(request):
             {"error": "Routing provider returned invalid route data."},
             status=status.HTTP_502_BAD_GATEWAY,
         )
+
+
+@api_view(["POST"])
+def corridor_forecast(request):
+    """Return actual hourly weather risk for sampled corridor points, hours 0–48.
+
+    This exploratory forecast does not change the ETA-based route recommendation.
+    """
+    points = request.data.get("points")
+    departure_raw = request.data.get("departure_time")
+    try:
+        if not isinstance(points, list) or not 2 <= len(points) <= 40:
+            raise ValueError("Provide between 2 and 40 corridor points.")
+        departure = datetime.fromisoformat(departure_raw.replace("Z", "+00:00"))
+        if departure.tzinfo is None or departure.utcoffset() is None:
+            raise ValueError("Departure time must include a timezone.")
+        weight = float(request.data.get("load_weight_lb"))
+        if not isfinite(weight) or weight < 0 or weight > 200000:
+            raise ValueError("Invalid load weight.")
+        validated = []
+        for point in points:
+            latitude = float(point["latitude"])
+            longitude = float(point["longitude"])
+            if not (isfinite(latitude) and isfinite(longitude) and
+                    -90 <= latitude <= 90 and -180 <= longitude <= 180):
+                raise ValueError("Invalid corridor coordinates.")
+            validated.append({"latitude": latitude, "longitude": longitude})
+    except (ValueError, TypeError, AttributeError, KeyError, OverflowError) as exc:
+        return Response({"error": str(exc) or "Invalid corridor forecast request."},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        client = OpenMeteoClient()
+        final_eta = (departure + timedelta(hours=48)).isoformat()
+        client.prefetch([{**point, "eta": final_eta} for point in validated])
+        series = []
+        for point in validated:
+            hourly = []
+            for offset in range(49):
+                forecast = client.get_forecast(
+                    point["latitude"], point["longitude"],
+                    departure + timedelta(hours=offset),
+                )
+                assessment = assess_weather_risk(forecast.conditions, weight)
+                hourly.append({
+                    "risk": assessment.level.name,
+                    "score": int(assessment.level),
+                    "wind_mph": round(forecast.conditions.wind_mph, 1),
+                    "rain_in_per_hr": round(forecast.conditions.rain_in_per_hr, 2),
+                    "snow_in_per_hr": round(forecast.conditions.snow_in_per_hr, 2),
+                    "forecast_time": forecast.forecast_time,
+                })
+            series.append({**point, "hours": hourly})
+        return Response({"departure_time": departure.isoformat(), "points": series})
+    except WeatherProviderError as exc:
+        return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
