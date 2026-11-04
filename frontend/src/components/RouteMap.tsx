@@ -20,7 +20,7 @@ type Route = {
 export type CorridorPoint = {
   latitude: number;
   longitude: number;
-  hours: { score: number; risk: string }[];
+  hours: { score: number; risk: string; wind_mph?: number; rain_in_per_hr?: number; snow_in_per_hr?: number }[];
 };
 type Props = {
   corridorPoints?: CorridorPoint[];
@@ -152,9 +152,9 @@ export default function RouteMap({
           layout: { "line-cap": "round", "line-join": "round" },
           paint: {
             "line-color": riskColor,
-            "line-width": ["interpolate", ["linear"], ["zoom"], 5, 48, 8, 90, 11, 140],
-            "line-blur": 26,
-            "line-opacity": 0.24,
+            "line-width": ["interpolate", ["linear"], ["zoom"], 5, 32, 8, 55, 11, 90],
+            "line-blur": 20,
+            "line-opacity": 0.16,
           },
         });
         instance.addLayer({
