@@ -1,4 +1,5 @@
 
+import logging
 import os
 from dataclasses import dataclass
 
@@ -8,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_URL = "https://api.openrouteservice.org"
+logger = logging.getLogger(__name__)
 
 
 class RoutingProviderError(Exception):
@@ -68,11 +70,12 @@ class OpenRouteServiceClient:
         origin: Location,
         destination: Location,
     ) -> list[dict]:
+        coordinates = [
+            [origin.longitude, origin.latitude],
+            [destination.longitude, destination.latitude],
+        ]
         payload = {
-            "coordinates": [
-                [origin.longitude, origin.latitude],
-                [destination.longitude, destination.latitude],
-            ],
+            "coordinates": coordinates,
             "alternative_routes": {
                 "target_count": 3,
                 "share_factor": 0.6,
@@ -80,33 +83,41 @@ class OpenRouteServiceClient:
             },
         }
 
-        try:
-            response = httpx.post(
-                f"{BASE_URL}/v2/directions/driving-hgv/geojson",
-                headers={
-                    "Authorization": self.api_key,
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-                timeout=30,
-            )
-            response.raise_for_status()
-            features = response.json().get("features", [])
+        for attempt in range(2):
+            try:
+                response = httpx.post(
+                    f"{BASE_URL}/v2/directions/driving-hgv/geojson",
+                    headers={
+                        "Authorization": self.api_key,
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                    timeout=30,
+                )
+                response.raise_for_status()
+                features = response.json().get("features", [])
+            except httpx.HTTPStatusError as exc:
+                code = exc.response.status_code
+                # Never log upstream bodies, request headers, or API keys.
+                logger.warning(
+                    "ORS HGV directions rejected request: status=%s, alternatives=%s",
+                    code,
+                    attempt == 0,
+                )
+                if code == 400 and attempt == 0:
+                    # Retain the truck profile; only relax alternatives.
+                    payload = {"coordinates": coordinates}
+                    continue
+                raise RoutingProviderError(
+                    f"Routing provider rejected the request (HTTP {code})."
+                ) from exc
+            except (httpx.HTTPError, ValueError) as exc:
+                raise RoutingProviderError(
+                    "Unable to retrieve routes from the provider."
+                ) from exc
 
-        except httpx.HTTPStatusError as exc:
-            raise RoutingProviderError(
-                f"Routing provider rejected the request "
-                f"(HTTP {exc.response.status_code})."
-            ) from exc
+            if not features:
+                raise RoutingProviderError("No drivable routes were returned.")
+            return features
 
-        except (httpx.HTTPError, ValueError) as exc:
-            raise RoutingProviderError(
-                "Unable to retrieve routes from the provider."
-            ) from exc
-
-        if not features:
-            raise RoutingProviderError(
-                "No drivable routes were returned."
-            )
-
-        return features
+        raise RoutingProviderError("Unable to retrieve routes from the provider.")
