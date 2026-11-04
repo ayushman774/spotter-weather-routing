@@ -65,14 +65,14 @@ export default function RouteMap({
   const checkpointSelectRef = useRef(onCheckpointSelect);
   const routesRef = useRef(routes);
   const heatmapRef = useRef({ corridorPoints, forecastHour, showHeatmap });
-  heatmapRef.current = { corridorPoints, forecastHour, showHeatmap };
 
   useEffect(() => {
+    heatmapRef.current = { corridorPoints, forecastHour, showHeatmap };
     checkpointSelectRef.current = onCheckpointSelect;
     selectedRef.current = selectedId;
     selectRef.current = onSelect;
     routesRef.current = routes;
-  }, [onCheckpointSelect, selectedId, onSelect, routes]);
+  }, [onCheckpointSelect, selectedId, onSelect, routes, corridorPoints, forecastHour, showHeatmap]);
 
   useEffect(() => {
     if (!container.current) return;
