@@ -286,7 +286,7 @@ Deploy the `frontend` directory as a Vite application and configure `VITE_API_BA
 
 - [x] Source repository: https://github.com/ayushman774/spotter-weather-routing
 - [x] Hosted application: https://spotter-weather-routing-beige.vercel.app/
-- [x] Loom walkthrough recording (user-confirmed): **[Add Loom video URL before submission](https://www.loom.com/)**
+- [x] Loom walkthrough recording (user-confirmed): **Loom video URL to be added before submission**
 
 ### Walkthrough outline (recorded video; link pending)
 
