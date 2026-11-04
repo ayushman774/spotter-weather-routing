@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState, type FormEvent, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type CSSProperties,
+} from "react";
 import {
   Alert,
   Box,
@@ -151,7 +157,9 @@ function App() {
     result?.routes[0];
 
   const forecastSummary = useMemo(() => {
-    const samples = corridorPoints.map((point) => point.hours[forecastHour]).filter(Boolean);
+    const samples = corridorPoints
+      .map((point) => point.hours[forecastHour])
+      .filter(Boolean);
     if (!samples.length) return null;
     const counts = [0, 0, 0, 0, 0];
     let totalWind = 0;
@@ -166,7 +174,13 @@ function App() {
         maxWind = Math.max(maxWind, wind);
       }
     }
-    return { counts, samples: samples.length, averageWind: totalWind / samples.length, minWind, maxWind };
+    return {
+      counts,
+      samples: samples.length,
+      averageWind: totalWind / samples.length,
+      minWind,
+      maxWind,
+    };
   }, [corridorPoints, forecastHour]);
 
   const selectedCheckpoints = selected?.checkpoints;
@@ -181,11 +195,16 @@ function App() {
       const lat2 = b[1] * radians;
       const dLat = lat2 - lat1;
       const dLon = (b[0] - a[0]) * radians;
-      const h = Math.sin(dLat / 2) ** 2 +
+      const h =
+        Math.sin(dLat / 2) ** 2 +
         Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-      return 3958.8 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(Math.max(0, 1 - h)));
+      return (
+        3958.8 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(Math.max(0, 1 - h)))
+      );
     };
-    const distances = geometry.map((_, i) => i === 0 ? 0 : toMiles(geometry[i - 1], geometry[i]));
+    const distances = geometry.map((_, i) =>
+      i === 0 ? 0 : toMiles(geometry[i - 1], geometry[i]),
+    );
     const total = distances.reduce((sum, d) => sum + d, 0);
     const count = Math.min(40, Math.max(2, Math.ceil(total / 5) + 1));
     const sampled: { latitude: number; longitude: number }[] = [];
@@ -193,19 +212,34 @@ function App() {
       let segment = 1;
       let traversed = 0;
       for (let i = 0; i < count; i++) {
-        const target = total * i / (count - 1);
-        while (segment < geometry.length - 1 && traversed + distances[segment] < target) {
+        const target = (total * i) / (count - 1);
+        while (
+          segment < geometry.length - 1 &&
+          traversed + distances[segment] < target
+        ) {
           traversed += distances[segment++];
         }
-        const fraction = distances[segment] > 0 ? Math.min(1, Math.max(0, (target - traversed) / distances[segment])) : 0;
-        const left = geometry[segment - 1], right = geometry[segment];
+        const fraction =
+          distances[segment] > 0
+            ? Math.min(
+                1,
+                Math.max(0, (target - traversed) / distances[segment]),
+              )
+            : 0;
+        const left = geometry[segment - 1],
+          right = geometry[segment];
         sampled.push({
           longitude: left[0] + (right[0] - left[0]) * fraction,
           latitude: left[1] + (right[1] - left[1]) * fraction,
         });
       }
     } else {
-      sampled.push(...selectedCheckpoints.map(({ latitude, longitude }) => ({ latitude, longitude })));
+      sampled.push(
+        ...selectedCheckpoints.map(({ latitude, longitude }) => ({
+          latitude,
+          longitude,
+        })),
+      );
     }
     const controller = new AbortController();
     // Begin state changes asynchronously; never synchronously update state inside an effect.
@@ -221,19 +255,32 @@ function App() {
         body: JSON.stringify({
           departure_time: toLocalIso(departure),
           load_weight_lb: Number(weight),
-          points: sampled.map(({ latitude, longitude }) => ({ latitude, longitude })),
+          points: sampled.map(({ latitude, longitude }) => ({
+            latitude,
+            longitude,
+          })),
         }),
-      }).then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Corridor forecast unavailable.");
-        if (!Array.isArray(data.points)) throw new Error("Invalid corridor forecast.");
-        if (!controller.signal.aborted) setCorridorPoints(data.points as CorridorPoint[]);
-      }).catch((cause: unknown) => {
-        if (controller.signal.aborted) return;
-        setCorridorError(cause instanceof Error ? cause.message : "Corridor forecast unavailable.");
-      }).finally(() => {
-        if (!controller.signal.aborted) setCorridorLoading(false);
-      });
+      })
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok)
+            throw new Error(data.error || "Corridor forecast unavailable.");
+          if (!Array.isArray(data.points))
+            throw new Error("Invalid corridor forecast.");
+          if (!controller.signal.aborted)
+            setCorridorPoints(data.points as CorridorPoint[]);
+        })
+        .catch((cause: unknown) => {
+          if (controller.signal.aborted) return;
+          setCorridorError(
+            cause instanceof Error
+              ? cause.message
+              : "Corridor forecast unavailable.",
+          );
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setCorridorLoading(false);
+        });
     });
     return () => controller.abort();
   }, [result, selected, selectedCheckpoints, departure, weight]);
@@ -754,12 +801,18 @@ function App() {
                 </div>
                 {forecastSummary && !corridorLoading && (
                   <p className="forecast-explorer__note" aria-live="polite">
-                    Hour +{forecastHour}: {forecastSummary.counts[0]} low, {forecastSummary.counts[1]} moderate,
-                    {" "}{forecastSummary.counts[2]} high, {forecastSummary.counts[3]} severe,
-                    {" "}{forecastSummary.counts[4]} no-travel locations.
+                    Hour +{forecastHour}: {forecastSummary.counts[0]} low,{" "}
+                    {forecastSummary.counts[1]} moderate,{" "}
+                    {forecastSummary.counts[2]} high,{" "}
+                    {forecastSummary.counts[3]} severe,{" "}
+                    {forecastSummary.counts[4]} no-travel locations.
                     {Number.isFinite(forecastSummary.minWind) && (
-                      <> Wind {forecastSummary.minWind.toFixed(1)}–{forecastSummary.maxWind.toFixed(1)} mph
-                      (average {forecastSummary.averageWind.toFixed(1)} mph).</>
+                      <>
+                        {" "}
+                        Wind {forecastSummary.minWind.toFixed(1)}–
+                        {forecastSummary.maxWind.toFixed(1)} mph (average{" "}
+                        {forecastSummary.averageWind.toFixed(1)} mph).
+                      </>
                     )}
                     {forecastSummary.counts[0] === forecastSummary.samples &&
                       " All sampled locations remain low-risk, so the map color may stay green as the forecast changes."}

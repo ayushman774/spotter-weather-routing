@@ -20,7 +20,13 @@ type Route = {
 export type CorridorPoint = {
   latitude: number;
   longitude: number;
-  hours: { score: number; risk: string; wind_mph?: number; rain_in_per_hr?: number; snow_in_per_hr?: number }[];
+  hours: {
+    score: number;
+    risk: string;
+    wind_mph?: number;
+    rain_in_per_hr?: number;
+    snow_in_per_hr?: number;
+  }[];
 };
 type Props = {
   corridorPoints?: CorridorPoint[];
@@ -50,10 +56,14 @@ function validCoordinates(route: Route) {
   );
 }
 
-
 // Render contiguous road segments with risk category and within-category weather intensity.
 // Intensity varies with actual hourly wind/rain/snow measurements, even if risk stays Low.
-function corridorGeoJSON(route: Route | undefined, points: CorridorPoint[], hour: number, visible: boolean) {
+function corridorGeoJSON(
+  route: Route | undefined,
+  points: CorridorPoint[],
+  hour: number,
+  visible: boolean,
+) {
   const coordinates = route ? validCoordinates(route) : [];
   const features: {
     type: "Feature";
@@ -67,7 +77,9 @@ function corridorGeoJSON(route: Route | undefined, points: CorridorPoint[], hour
     let best = Infinity;
     let weather: CorridorPoint["hours"][number] | undefined;
     for (const point of points) {
-      const dx = (coordinate[0] - point.longitude) * Math.cos(coordinate[1] * Math.PI / 180);
+      const dx =
+        (coordinate[0] - point.longitude) *
+        Math.cos((coordinate[1] * Math.PI) / 180);
       const dy = coordinate[1] - point.latitude;
       const distance = dx * dx + dy * dy;
       if (distance < best) {
@@ -86,7 +98,10 @@ function corridorGeoJSON(route: Route | undefined, points: CorridorPoint[], hour
   };
   const stride = Math.max(1, Math.ceil((coordinates.length - 1) / 1800));
   for (let i = 0; i < coordinates.length - 1; i += stride) {
-    const segment = coordinates.slice(i, Math.min(i + stride + 1, coordinates.length));
+    const segment = coordinates.slice(
+      i,
+      Math.min(i + stride + 1, coordinates.length),
+    );
     features.push({
       type: "Feature",
       geometry: { type: "LineString", coordinates: segment },
@@ -122,7 +137,15 @@ export default function RouteMap({
     selectedRef.current = selectedId;
     selectRef.current = onSelect;
     routesRef.current = routes;
-  }, [onCheckpointSelect, selectedId, onSelect, routes, corridorPoints, forecastHour, showHeatmap]);
+  }, [
+    onCheckpointSelect,
+    selectedId,
+    onSelect,
+    routes,
+    corridorPoints,
+    forecastHour,
+    showHeatmap,
+  ]);
 
   useEffect(() => {
     if (!container.current) return;
@@ -140,21 +163,46 @@ export default function RouteMap({
     );
 
     function drawHeatmap() {
-      const { corridorPoints: points, forecastHour: hour, showHeatmap: visible } = heatmapRef.current;
-      const selected = routesRef.current.find((route) => route.id === selectedRef.current) ?? routesRef.current[0];
+      const {
+        corridorPoints: points,
+        forecastHour: hour,
+        showHeatmap: visible,
+      } = heatmapRef.current;
+      const selected =
+        routesRef.current.find((route) => route.id === selectedRef.current) ??
+        routesRef.current[0];
       const data = corridorGeoJSON(selected, points, hour, visible);
-      const source = instance.getSource("corridor-weather") as maplibregl.GeoJSONSource | undefined;
+      const source = instance.getSource("corridor-weather") as
+        | maplibregl.GeoJSONSource
+        | undefined;
       if (source) source.setData(data);
       else {
         instance.addSource("corridor-weather", { type: "geojson", data });
         const riskColor: maplibregl.ExpressionSpecification = [
-          "match", ["get", "score"],
-          0, "#287a65", 1, "#e0c052", 2, "#f28a43",
-          3, "#e84d50", 4, "#ae1c65", "#287a65",
+          "match",
+          ["get", "score"],
+          0,
+          "#287a65",
+          1,
+          "#e0c052",
+          2,
+          "#f28a43",
+          3,
+          "#e84d50",
+          4,
+          "#ae1c65",
+          "#287a65",
         ];
         const intensityOpacity: maplibregl.ExpressionSpecification = [
-          "interpolate", ["linear"], ["get", "intensity"],
-          0, 0.18, 0.5, 0.45, 1, 0.85,
+          "interpolate",
+          ["linear"],
+          ["get", "intensity"],
+          0,
+          0.18,
+          0.5,
+          0.45,
+          1,
+          0.85,
         ];
         // Diffuse outer band reads as a weather corridor, not a highlighted road.
         instance.addLayer({
@@ -164,7 +212,17 @@ export default function RouteMap({
           layout: { "line-cap": "round", "line-join": "round" },
           paint: {
             "line-color": riskColor,
-            "line-width": ["interpolate", ["linear"], ["zoom"], 5, 32, 8, 55, 11, 90],
+            "line-width": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              5,
+              32,
+              8,
+              55,
+              11,
+              90,
+            ],
             "line-blur": 20,
             "line-opacity": intensityOpacity,
           },
@@ -176,7 +234,17 @@ export default function RouteMap({
           layout: { "line-cap": "round", "line-join": "round" },
           paint: {
             "line-color": riskColor,
-            "line-width": ["interpolate", ["linear"], ["zoom"], 5, 20, 8, 38, 11, 65],
+            "line-width": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              5,
+              20,
+              8,
+              38,
+              11,
+              65,
+            ],
             "line-blur": 14,
             "line-opacity": intensityOpacity,
           },
@@ -188,13 +256,24 @@ export default function RouteMap({
           layout: { "line-cap": "round", "line-join": "round" },
           paint: {
             "line-color": riskColor,
-            "line-width": ["interpolate", ["linear"], ["zoom"], 5, 9, 8, 18, 11, 30],
+            "line-width": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              5,
+              9,
+              8,
+              18,
+              11,
+              30,
+            ],
             "line-blur": 5,
             "line-opacity": intensityOpacity,
           },
         });
         routesRef.current.forEach((_, index) => {
-          if (instance.getLayer(`route-line-${index}`)) instance.moveLayer(`route-line-${index}`);
+          if (instance.getLayer(`route-line-${index}`))
+            instance.moveLayer(`route-line-${index}`);
         });
       }
     }
@@ -339,13 +418,21 @@ export default function RouteMap({
   useEffect(() => {
     const instance = map.current;
     if (!instance) return;
-    const selected = routes.find((route) => route.id === selectedId) ?? routes[0];
-    const data = corridorGeoJSON(selected, corridorPoints, forecastHour, showHeatmap);
+    const selected =
+      routes.find((route) => route.id === selectedId) ?? routes[0];
+    const data = corridorGeoJSON(
+      selected,
+      corridorPoints,
+      forecastHour,
+      showHeatmap,
+    );
     // Forecast data can arrive before MapLibre finishes loading its style and
     // creating the corridor source. Retry on the map's load event rather than
     // requiring the user to move the slider to trigger another React effect.
     const update = () => {
-      const source = instance.getSource("corridor-weather") as maplibregl.GeoJSONSource | undefined;
+      const source = instance.getSource("corridor-weather") as
+        | maplibregl.GeoJSONSource
+        | undefined;
       if (source) source.setData(data);
     };
     update();
@@ -492,10 +579,16 @@ export default function RouteMap({
         <div
           aria-live="polite"
           style={{
-            position: "absolute", top: 14, right: 58, zIndex: 2,
-            padding: "7px 11px", borderRadius: 7,
+            position: "absolute",
+            top: 14,
+            right: 58,
+            zIndex: 2,
+            padding: "7px 11px",
+            borderRadius: 7,
             background: "rgba(8, 22, 37, 0.9)",
-            color: "#b8dcff", fontSize: 12, fontWeight: 700,
+            color: "#b8dcff",
+            fontSize: 12,
+            fontWeight: 700,
             pointerEvents: "none",
           }}
         >
