@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type CSSProperties } from "react";
 import {
   Alert,
   Box,
@@ -149,6 +149,25 @@ function App() {
   const selected =
     result?.routes.find((route) => route.id === selectedId) ??
     result?.routes[0];
+
+  const forecastSummary = useMemo(() => {
+    const samples = corridorPoints.map((point) => point.hours[forecastHour]).filter(Boolean);
+    if (!samples.length) return null;
+    const counts = [0, 0, 0, 0, 0];
+    let totalWind = 0;
+    let minWind = Infinity;
+    let maxWind = -Infinity;
+    for (const sample of samples) {
+      counts[Math.max(0, Math.min(4, sample.score))]++;
+      const wind = sample.wind_mph;
+      if (typeof wind === "number" && Number.isFinite(wind)) {
+        totalWind += wind;
+        minWind = Math.min(minWind, wind);
+        maxWind = Math.max(maxWind, wind);
+      }
+    }
+    return { counts, samples: samples.length, averageWind: totalWind / samples.length, minWind, maxWind };
+  }, [corridorPoints, forecastHour]);
 
   const selectedCheckpoints = selected?.checkpoints;
 
@@ -733,6 +752,19 @@ function App() {
                     ),
                   )}
                 </div>
+                {forecastSummary && !corridorLoading && (
+                  <p className="forecast-explorer__note" aria-live="polite">
+                    Hour +{forecastHour}: {forecastSummary.counts[0]} low, {forecastSummary.counts[1]} moderate,
+                    {" "}{forecastSummary.counts[2]} high, {forecastSummary.counts[3]} severe,
+                    {" "}{forecastSummary.counts[4]} no-travel locations.
+                    {Number.isFinite(forecastSummary.minWind) && (
+                      <> Wind {forecastSummary.minWind.toFixed(1)}–{forecastSummary.maxWind.toFixed(1)} mph
+                      (average {forecastSummary.averageWind.toFixed(1)} mph).</>
+                    )}
+                    {forecastSummary.counts[0] === forecastSummary.samples &&
+                      " All sampled locations remain low-risk, so the map color may stay green as the forecast changes."}
+                  </p>
+                )}
                 {corridorLoading && (
                   <p role="status">Loading hourly corridor forecasts…</p>
                 )}
