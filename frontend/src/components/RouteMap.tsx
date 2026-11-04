@@ -344,6 +344,11 @@ export default function RouteMap({
         const active = route.id === selectedRef.current;
         instance.setPaintProperty(
           `route-line-${index}`,
+          "line-color",
+          active ? colors[0] : colors[index % colors.length],
+        );
+        instance.setPaintProperty(
+          `route-line-${index}`,
           "line-width",
           active ? 6 : 3,
         );
@@ -450,6 +455,11 @@ export default function RouteMap({
     routes.forEach((route, index) => {
       if (!instance.getLayer(`route-line-${index}`)) return;
       const active = route.id === selectedId;
+      instance.setPaintProperty(
+        `route-line-${index}`,
+        "line-color",
+        active ? colors[0] : colors[index % colors.length],
+      );
       instance.setPaintProperty(
         `route-line-${index}`,
         "line-width",
