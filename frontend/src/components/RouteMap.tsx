@@ -144,6 +144,19 @@ export default function RouteMap({
           0, "#287a65", 1, "#e0c052", 2, "#f28a43",
           3, "#e84d50", 4, "#ae1c65", "#287a65",
         ];
+        // Diffuse outer band reads as a weather corridor, not a highlighted road.
+        instance.addLayer({
+          id: "corridor-weather-atmosphere",
+          type: "line",
+          source: "corridor-weather",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: {
+            "line-color": riskColor,
+            "line-width": ["interpolate", ["linear"], ["zoom"], 5, 48, 8, 90, 11, 140],
+            "line-blur": 26,
+            "line-opacity": 0.24,
+          },
+        });
         instance.addLayer({
           id: "corridor-weather-halo",
           type: "line",
