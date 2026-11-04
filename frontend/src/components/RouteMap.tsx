@@ -351,7 +351,9 @@ export default function RouteMap({
     update();
     if (!instance.isStyleLoaded()) {
       instance.on("load", update);
-      return () => instance.off("load", update);
+      return () => {
+        instance.off("load", update);
+      };
     }
   }, [routes, selectedId, corridorPoints, forecastHour, showHeatmap]);
 
