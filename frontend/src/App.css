@@ -1612,3 +1612,113 @@
     transform: none;
   }
 }
+
+/* Hourly corridor forecast explorer */
+.forecast-explorer {
+  margin: 22px 0;
+  padding: 23px;
+  background: #111f30;
+  border: 1px solid #2d435b;
+  border-radius: 18px;
+  color: #eaf4ff;
+}
+.forecast-explorer__heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.forecast-explorer__heading h3 {
+  margin: 8px 0;
+  font-size: 20px;
+}
+.forecast-explorer__heading p,
+.forecast-explorer__note {
+  color: #9eb5cc;
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: 600px;
+}
+.forecast-explorer__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #b6d8f5;
+  cursor: pointer;
+}
+.forecast-explorer__toggle input {
+  accent-color: #61b7ff;
+}
+.forecast-explorer__time {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.forecast-explorer__time strong {
+  font-size: 19px;
+  color: #75caff;
+}
+.forecast-explorer__time span {
+  font-size: 12px;
+  color: #aac4dc;
+}
+.forecast-explorer__slider {
+  width: 100%;
+  margin: 15px 0 4px;
+  accent-color: #61b7ff;
+  cursor: pointer;
+}
+.forecast-explorer__slider:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+.forecast-explorer__ticks {
+  display: flex;
+  justify-content: space-between;
+  color: #819cb7;
+  font-size: 11px;
+}
+.forecast-explorer__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 19px;
+  font-size: 11px;
+  color: #b9cee0;
+}
+.forecast-explorer__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.forecast-explorer__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.forecast-explorer__dot--0 {
+  background: #287a65;
+}
+.forecast-explorer__dot--1 {
+  background: #e0c052;
+}
+.forecast-explorer__dot--2 {
+  background: #f28a43;
+}
+.forecast-explorer__dot--3 {
+  background: #e84d50;
+}
+.forecast-explorer__dot--4 {
+  background: #ae1c65;
+}
+@media (max-width: 620px) {
+  .forecast-explorer {
+    padding: 16px;
+  }
+}

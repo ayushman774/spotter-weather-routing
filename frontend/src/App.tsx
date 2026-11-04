@@ -1,4 +1,10 @@
-import { useState, type FormEvent, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type CSSProperties,
+} from "react";
 import {
   Alert,
   Box,
@@ -28,7 +34,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import "./App.css";
-import RouteMap from "./components/RouteMap";
+import RouteMap, { type CorridorPoint } from "./components/RouteMap";
 import CheckpointTimeline from "./components/CheckpointTimeline";
 import SpotlightCard from "./components/reactbits/SpotlightCard";
 import BlurText from "./components/reactbits/BlurText";
@@ -140,14 +146,151 @@ function App() {
     number | null
   >(null);
 
+  const [forecastHour, setForecastHour] = useState(0);
+  const [showHeatmap, setShowHeatmap] = useState(true);
+  const [corridorPoints, setCorridorPoints] = useState<CorridorPoint[]>([]);
+  const [corridorLoading, setCorridorLoading] = useState(false);
+  const [corridorError, setCorridorError] = useState("");
+
   const selected =
     result?.routes.find((route) => route.id === selectedId) ??
     result?.routes[0];
 
+  const forecastSummary = useMemo(() => {
+    const samples = corridorPoints
+      .map((point) => point.hours[forecastHour])
+      .filter(Boolean);
+    if (!samples.length) return null;
+    const counts = [0, 0, 0, 0, 0];
+    let totalWind = 0;
+    let minWind = Infinity;
+    let maxWind = -Infinity;
+    for (const sample of samples) {
+      counts[Math.max(0, Math.min(4, sample.score))]++;
+      const wind = sample.wind_mph;
+      if (typeof wind === "number" && Number.isFinite(wind)) {
+        totalWind += wind;
+        minWind = Math.min(minWind, wind);
+        maxWind = Math.max(maxWind, wind);
+      }
+    }
+    return {
+      counts,
+      samples: samples.length,
+      averageWind: totalWind / samples.length,
+      minWind,
+      maxWind,
+    };
+  }, [corridorPoints, forecastHour]);
+
+  const selectedCheckpoints = selected?.checkpoints;
+
+  useEffect(() => {
+    if (!result || !selectedCheckpoints?.length) return;
+    // Sample the actual road geometry every ~5 miles, independently of checkpoint spacing.
+    const geometry = selected?.geometry.coordinates ?? [];
+    const toMiles = (a: number[], b: number[]) => {
+      const radians = Math.PI / 180;
+      const lat1 = a[1] * radians;
+      const lat2 = b[1] * radians;
+      const dLat = lat2 - lat1;
+      const dLon = (b[0] - a[0]) * radians;
+      const h =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+      return (
+        3958.8 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(Math.max(0, 1 - h)))
+      );
+    };
+    const distances = geometry.map((_, i) =>
+      i === 0 ? 0 : toMiles(geometry[i - 1], geometry[i]),
+    );
+    const total = distances.reduce((sum, d) => sum + d, 0);
+    const count = Math.min(40, Math.max(2, Math.ceil(total / 5) + 1));
+    const sampled: { latitude: number; longitude: number }[] = [];
+    if (geometry.length >= 2 && total > 0) {
+      let segment = 1;
+      let traversed = 0;
+      for (let i = 0; i < count; i++) {
+        const target = (total * i) / (count - 1);
+        while (
+          segment < geometry.length - 1 &&
+          traversed + distances[segment] < target
+        ) {
+          traversed += distances[segment++];
+        }
+        const fraction =
+          distances[segment] > 0
+            ? Math.min(
+                1,
+                Math.max(0, (target - traversed) / distances[segment]),
+              )
+            : 0;
+        const left = geometry[segment - 1],
+          right = geometry[segment];
+        sampled.push({
+          longitude: left[0] + (right[0] - left[0]) * fraction,
+          latitude: left[1] + (right[1] - left[1]) * fraction,
+        });
+      }
+    } else {
+      sampled.push(
+        ...selectedCheckpoints.map(({ latitude, longitude }) => ({
+          latitude,
+          longitude,
+        })),
+      );
+    }
+    const controller = new AbortController();
+    // Begin state changes asynchronously; never synchronously update state inside an effect.
+    Promise.resolve().then(() => {
+      if (controller.signal.aborted) return;
+      setCorridorLoading(true);
+      setCorridorError("");
+      setCorridorPoints([]);
+      return fetch(`${API_BASE}/api/weather/corridor/`, {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          departure_time: toLocalIso(departure),
+          load_weight_lb: Number(weight),
+          points: sampled.map(({ latitude, longitude }) => ({
+            latitude,
+            longitude,
+          })),
+        }),
+      })
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok)
+            throw new Error(data.error || "Corridor forecast unavailable.");
+          if (!Array.isArray(data.points))
+            throw new Error("Invalid corridor forecast.");
+          if (!controller.signal.aborted)
+            setCorridorPoints(data.points as CorridorPoint[]);
+        })
+        .catch((cause: unknown) => {
+          if (controller.signal.aborted) return;
+          setCorridorError(
+            cause instanceof Error
+              ? cause.message
+              : "Corridor forecast unavailable.",
+          );
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setCorridorLoading(false);
+        });
+    });
+    return () => controller.abort();
+  }, [result, selected, selectedCheckpoints, departure, weight]);
+
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (departure > latestForecastDeparture()) {
-      setError("Weather forecasts are available only for the next 15 calendar days, including today.");
+      setError(
+        "Weather forecasts are available only for the next 15 calendar days, including today.",
+      );
       return;
     }
     setError("");
@@ -155,6 +298,7 @@ function App() {
     setResult(null);
     setSelectedId(null);
     setSelectedCheckpointIndex(null);
+    setForecastHour(0);
     try {
       const response = await fetch(`${API_BASE}/api/routes/plan/`, {
         method: "POST",
@@ -496,6 +640,9 @@ function App() {
               {result && (
                 <RouteMap
                   routes={result.routes}
+                  corridorPoints={corridorPoints}
+                  forecastHour={forecastHour}
+                  showHeatmap={showHeatmap}
                   selectedId={selected?.id ?? null}
                   selectedCheckpointIndex={selectedCheckpointIndex}
                   onCheckpointSelect={setSelectedCheckpointIndex}
@@ -588,6 +735,109 @@ function App() {
                 <span>WEATHER-AWARE · LOAD-SENSITIVE · DATA-DRIVEN</span>
               </div>
             </div>
+            {result && selected && (
+              <section
+                className="forecast-explorer"
+                aria-label="48-hour corridor weather forecast"
+              >
+                <div className="forecast-explorer__heading">
+                  <div>
+                    <span className="section-eyebrow">FORECAST EXPLORER</span>
+                    <h3>Weather heatmap · 0–48 hours</h3>
+                    <p>
+                      Explore hourly, load-aware weather risk along the selected
+                      route corridor. Route recommendations remain based on
+                      checkpoint arrival times.
+                    </p>
+                  </div>
+                  <label className="forecast-explorer__toggle">
+                    <input
+                      type="checkbox"
+                      checked={showHeatmap}
+                      onChange={(event) => setShowHeatmap(event.target.checked)}
+                    />
+                    Show heatmap
+                  </label>
+                </div>
+                <div className="forecast-explorer__time">
+                  <strong>+{forecastHour} hours</strong>
+                  <span>
+                    {new Date(
+                      new Date(departure).getTime() + forecastHour * 3600000,
+                    ).toLocaleString()}
+                  </span>
+                </div>
+                <input
+                  className="forecast-explorer__slider"
+                  aria-label="Forecast hours after departure"
+                  type="range"
+                  min={0}
+                  max={48}
+                  step={1}
+                  value={forecastHour}
+                  onChange={(event) =>
+                    setForecastHour(Number(event.target.value))
+                  }
+                  disabled={corridorLoading || !corridorPoints.length}
+                />
+                <div className="forecast-explorer__ticks">
+                  <span>0h</span>
+                  <span>12h</span>
+                  <span>24h</span>
+                  <span>36h</span>
+                  <span>48h</span>
+                </div>
+                <div className="forecast-explorer__legend">
+                  {["Low", "Moderate", "High", "Severe", "No Travel"].map(
+                    (label, index) => (
+                      <span key={label}>
+                        <i
+                          className={`forecast-explorer__dot forecast-explorer__dot--${index}`}
+                        />
+                        {label}
+                      </span>
+                    ),
+                  )}
+                </div>
+                {forecastSummary && !corridorLoading && (
+                  <p className="forecast-explorer__note" aria-live="polite">
+                    Hour +{forecastHour}: {forecastSummary.counts[0]} low,{" "}
+                    {forecastSummary.counts[1]} moderate,{" "}
+                    {forecastSummary.counts[2]} high,{" "}
+                    {forecastSummary.counts[3]} severe,{" "}
+                    {forecastSummary.counts[4]} no-travel locations.
+                    {Number.isFinite(forecastSummary.minWind) && (
+                      <>
+                        {" "}
+                        Wind {forecastSummary.minWind.toFixed(1)}–
+                        {forecastSummary.maxWind.toFixed(1)} mph (average{" "}
+                        {forecastSummary.averageWind.toFixed(1)} mph).
+                      </>
+                    )}
+                    {forecastSummary.counts[0] === forecastSummary.samples &&
+                      " All sampled locations remain low-risk, so the map color may stay green as the forecast changes."}
+                  </p>
+                )}
+                {corridorLoading && (
+                  <p role="status">Loading hourly corridor forecasts…</p>
+                )}
+                {corridorError && (
+                  <Alert severity="warning">
+                    {corridorError} The arrival-time risk assessment remains
+                    available.
+                  </Alert>
+                )}
+                {!corridorLoading &&
+                  !corridorError &&
+                  !!corridorPoints.length && (
+                    <p className="forecast-explorer__note">
+                      Showing {corridorPoints.length} sampled corridor
+                      locations. Weather colors represent spatially blended
+                      forecast risk, not precise road closures.
+                    </p>
+                  )}
+              </section>
+            )}
             {result && selected && (
               <section
                 className="risk-intelligence"
