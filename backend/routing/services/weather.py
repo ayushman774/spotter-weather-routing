@@ -10,6 +10,7 @@ from routing.services.risk import WeatherConditions
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 CM_PER_INCH = 2.54
 MAX_CACHE_ENTRIES = 2048
+MAX_FORECAST_DAYS = 15
 BATCH_SIZE = 25
 
 
@@ -94,12 +95,23 @@ class OpenMeteoClient:
     def prefetch(self, checkpoints):
         coordinates = []
         seen = set()
+        latest_eta = None
         for checkpoint in checkpoints:
             key = self._coordinates(checkpoint["latitude"], checkpoint["longitude"])
-            self._target(datetime.fromisoformat(checkpoint["eta"]))
+            target = self._target(datetime.fromisoformat(checkpoint["eta"]))
+            if latest_eta is None or target > latest_eta:
+                latest_eta = target
             if key not in self._cache and key not in seen:
                 coordinates.append(key)
                 seen.add(key)
+
+        # Open-Meteo forecast_days counts UTC calendar days, including today.
+        today = datetime.now(timezone.utc).date()
+        days = (latest_eta.date() - today).days + 1 if latest_eta else 1
+        if days < 1 or days > MAX_FORECAST_DAYS:
+            raise WeatherProviderError(
+                "Checkpoint arrival is outside the available 15-day weather forecast window."
+            )
 
         for start in range(0, len(coordinates), BATCH_SIZE):
             batch = coordinates[start:start + BATCH_SIZE]
@@ -110,7 +122,7 @@ class OpenMeteoClient:
                 "wind_speed_unit": "mph",
                 "precipitation_unit": "inch",
                 "timezone": "UTC",
-                "forecast_days": 3,
+                "forecast_days": max(3, days),
             }
             try:
                 with httpx.Client(timeout=15, transport=self.transport) as client:
@@ -150,7 +162,15 @@ class OpenMeteoClient:
         )
         forecast_time, conditions = hourly[index]
         if abs((forecast_time - target).total_seconds()) > 1800:
-            raise WeatherProviderError("Forecast data unavailable for checkpoint ETA.")
+            # Cached forecasts may have been fetched for an earlier journey.
+            # Refresh with the requested ETA before declaring the forecast unavailable.
+            self._cache.pop(key, None)
+            self.prefetch([{"latitude": key[0], "longitude": key[1], "eta": eta.isoformat()}])
+            hourly = self._cache[key]
+            index = min(range(len(hourly)), key=lambda i: abs((hourly[i][0] - target).total_seconds()))
+            forecast_time, conditions = hourly[index]
+            if abs((forecast_time - target).total_seconds()) > 1800:
+                raise WeatherProviderError("Forecast data unavailable for checkpoint ETA.")
         return CheckpointForecast(
             requested_eta=target.isoformat(),
             forecast_time=forecast_time.isoformat(),

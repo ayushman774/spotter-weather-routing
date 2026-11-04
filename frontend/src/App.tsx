@@ -110,6 +110,16 @@ function defaultDeparture() {
     .slice(0, 16);
 }
 
+// The forecast includes today plus the next 14 calendar days.
+function latestForecastDeparture() {
+  const date = new Date();
+  date.setDate(date.getDate() + 14);
+  date.setHours(23, 59, 0, 0);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
+}
+
 function toLocalIso(value: string) {
   return new Date(value).toISOString();
 }
@@ -136,6 +146,10 @@ function App() {
 
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (departure > latestForecastDeparture()) {
+      setError("Weather forecasts are available only for the next 15 calendar days, including today.");
+      return;
+    }
     setError("");
     setLoading(true);
     setResult(null);
@@ -276,6 +290,8 @@ function App() {
                 label="Departure · your local time"
                 type="datetime-local"
                 value={departure}
+                inputProps={{ max: latestForecastDeparture() }}
+                helperText="Weather forecasts are available for the next 15 calendar days, including today. Checkpoint arrivals must also fall within this period."
                 onChange={(event) => setDeparture(event.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
