@@ -154,17 +154,40 @@ function App() {
 
   useEffect(() => {
     if (!result || !selectedCheckpoints?.length) return;
-    const checkpoints = selectedCheckpoints;
-    const count = Math.min(40, checkpoints.length);
-    const sampled = Array.from(
-      { length: count },
-      (_, index) =>
-        checkpoints[
-          Math.round(
-            (index * (checkpoints.length - 1)) / Math.max(count - 1, 1),
-          )
-        ],
-    );
+    // Sample the actual road geometry every ~5 miles, independently of checkpoint spacing.
+    const geometry = selected?.geometry.coordinates ?? [];
+    const toMiles = (a: number[], b: number[]) => {
+      const radians = Math.PI / 180;
+      const lat1 = a[1] * radians;
+      const lat2 = b[1] * radians;
+      const dLat = lat2 - lat1;
+      const dLon = (b[0] - a[0]) * radians;
+      const h = Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+      return 3958.8 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(Math.max(0, 1 - h)));
+    };
+    const distances = geometry.map((_, i) => i === 0 ? 0 : toMiles(geometry[i - 1], geometry[i]));
+    const total = distances.reduce((sum, d) => sum + d, 0);
+    const count = Math.min(40, Math.max(2, Math.ceil(total / 5) + 1));
+    const sampled: { latitude: number; longitude: number }[] = [];
+    if (geometry.length >= 2 && total > 0) {
+      let segment = 1;
+      let traversed = 0;
+      for (let i = 0; i < count; i++) {
+        const target = total * i / (count - 1);
+        while (segment < geometry.length - 1 && traversed + distances[segment] < target) {
+          traversed += distances[segment++];
+        }
+        const fraction = distances[segment] > 0 ? Math.min(1, Math.max(0, (target - traversed) / distances[segment])) : 0;
+        const left = geometry[segment - 1], right = geometry[segment];
+        sampled.push({
+          longitude: left[0] + (right[0] - left[0]) * fraction,
+          latitude: left[1] + (right[1] - left[1]) * fraction,
+        });
+      }
+    } else {
+      sampled.push(...selectedCheckpoints.map(({ latitude, longitude }) => ({ latitude, longitude })));
+    }
     const controller = new AbortController();
     // Begin state changes asynchronously; never synchronously update state inside an effect.
     Promise.resolve().then(() => {
@@ -194,7 +217,7 @@ function App() {
       });
     });
     return () => controller.abort();
-  }, [result, selectedCheckpoints, departure, weight]);
+  }, [result, selected, selectedCheckpoints, departure, weight]);
 
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
