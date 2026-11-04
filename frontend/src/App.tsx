@@ -156,8 +156,14 @@ function App() {
     if (!result || !selectedCheckpoints?.length) return;
     const checkpoints = selectedCheckpoints;
     const count = Math.min(40, checkpoints.length);
-    const sampled = Array.from({ length: count }, (_, index) =>
-      checkpoints[Math.round(index * (checkpoints.length - 1) / Math.max(count - 1, 1))]
+    const sampled = Array.from(
+      { length: count },
+      (_, index) =>
+        checkpoints[
+          Math.round(
+            (index * (checkpoints.length - 1)) / Math.max(count - 1, 1),
+          )
+        ],
     );
     const controller = new AbortController();
     // Begin state changes asynchronously; never synchronously update state inside an effect.
@@ -193,7 +199,9 @@ function App() {
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (departure > latestForecastDeparture()) {
-      setError("Weather forecasts are available only for the next 15 calendar days, including today.");
+      setError(
+        "Weather forecasts are available only for the next 15 calendar days, including today.",
+      );
       return;
     }
     setError("");
@@ -639,32 +647,87 @@ function App() {
               </div>
             </div>
             {result && selected && (
-              <section className="forecast-explorer" aria-label="48-hour corridor weather forecast">
+              <section
+                className="forecast-explorer"
+                aria-label="48-hour corridor weather forecast"
+              >
                 <div className="forecast-explorer__heading">
                   <div>
                     <span className="section-eyebrow">FORECAST EXPLORER</span>
                     <h3>Weather heatmap · 0–48 hours</h3>
-                    <p>Explore hourly, load-aware weather risk along the selected route corridor. Route recommendations remain based on checkpoint arrival times.</p>
+                    <p>
+                      Explore hourly, load-aware weather risk along the selected
+                      route corridor. Route recommendations remain based on
+                      checkpoint arrival times.
+                    </p>
                   </div>
                   <label className="forecast-explorer__toggle">
-                    <input type="checkbox" checked={showHeatmap} onChange={(event) => setShowHeatmap(event.target.checked)} />
+                    <input
+                      type="checkbox"
+                      checked={showHeatmap}
+                      onChange={(event) => setShowHeatmap(event.target.checked)}
+                    />
                     Show heatmap
                   </label>
                 </div>
                 <div className="forecast-explorer__time">
                   <strong>+{forecastHour} hours</strong>
-                  <span>{new Date(new Date(departure).getTime() + forecastHour * 3600000).toLocaleString()}</span>
+                  <span>
+                    {new Date(
+                      new Date(departure).getTime() + forecastHour * 3600000,
+                    ).toLocaleString()}
+                  </span>
                 </div>
-                <input className="forecast-explorer__slider" aria-label="Forecast hours after departure" type="range" min={0} max={48} step={1} value={forecastHour} onChange={(event) => setForecastHour(Number(event.target.value))} disabled={corridorLoading || !corridorPoints.length} />
-                <div className="forecast-explorer__ticks"><span>0h</span><span>12h</span><span>24h</span><span>36h</span><span>48h</span></div>
+                <input
+                  className="forecast-explorer__slider"
+                  aria-label="Forecast hours after departure"
+                  type="range"
+                  min={0}
+                  max={48}
+                  step={1}
+                  value={forecastHour}
+                  onChange={(event) =>
+                    setForecastHour(Number(event.target.value))
+                  }
+                  disabled={corridorLoading || !corridorPoints.length}
+                />
+                <div className="forecast-explorer__ticks">
+                  <span>0h</span>
+                  <span>12h</span>
+                  <span>24h</span>
+                  <span>36h</span>
+                  <span>48h</span>
+                </div>
                 <div className="forecast-explorer__legend">
-                  {["Low", "Moderate", "High", "Severe", "No Travel"].map((label, index) => (
-                    <span key={label}><i className={`forecast-explorer__dot forecast-explorer__dot--${index}`} />{label}</span>
-                  ))}
+                  {["Low", "Moderate", "High", "Severe", "No Travel"].map(
+                    (label, index) => (
+                      <span key={label}>
+                        <i
+                          className={`forecast-explorer__dot forecast-explorer__dot--${index}`}
+                        />
+                        {label}
+                      </span>
+                    ),
+                  )}
                 </div>
-                {corridorLoading && <p role="status">Loading hourly corridor forecasts…</p>}
-                {corridorError && <Alert severity="warning">{corridorError} The arrival-time risk assessment remains available.</Alert>}
-                {!corridorLoading && !corridorError && !!corridorPoints.length && <p className="forecast-explorer__note">Showing {corridorPoints.length} sampled corridor locations. Weather colors represent spatially blended forecast risk, not precise road closures.</p>}
+                {corridorLoading && (
+                  <p role="status">Loading hourly corridor forecasts…</p>
+                )}
+                {corridorError && (
+                  <Alert severity="warning">
+                    {corridorError} The arrival-time risk assessment remains
+                    available.
+                  </Alert>
+                )}
+                {!corridorLoading &&
+                  !corridorError &&
+                  !!corridorPoints.length && (
+                    <p className="forecast-explorer__note">
+                      Showing {corridorPoints.length} sampled corridor
+                      locations. Weather colors represent spatially blended
+                      forecast risk, not precise road closures.
+                    </p>
+                  )}
               </section>
             )}
             {result && selected && (

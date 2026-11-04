@@ -17,7 +17,11 @@ type Route = {
   checkpoints: Checkpoint[];
   safety_rank?: number;
 };
-export type CorridorPoint = { latitude: number; longitude: number; hours: { score: number; risk: string }[] };
+export type CorridorPoint = {
+  latitude: number;
+  longitude: number;
+  hours: { score: number; risk: string }[];
+};
 type Props = {
   corridorPoints?: CorridorPoint[];
   forecastHour?: number;
@@ -90,16 +94,36 @@ export default function RouteMap({
     );
 
     function drawHeatmap() {
-      const { corridorPoints: points, forecastHour: hour, showHeatmap: visible } = heatmapRef.current;
-      const data = { type: "FeatureCollection" as const, features: visible ? points.filter((point) => point.hours[hour]).map((point) => ({
-        type: "Feature" as const,
-        geometry: { type: "Point" as const, coordinates: [point.longitude, point.latitude] },
-        properties: { score: point.hours[hour].score },
-      })) : [] };
-      const source = instance.getSource("corridor-weather") as maplibregl.GeoJSONSource | undefined;
+      const {
+        corridorPoints: points,
+        forecastHour: hour,
+        showHeatmap: visible,
+      } = heatmapRef.current;
+      const data = {
+        type: "FeatureCollection" as const,
+        features: visible
+          ? points
+              .filter((point) => point.hours[hour])
+              .map((point) => ({
+                type: "Feature" as const,
+                geometry: {
+                  type: "Point" as const,
+                  coordinates: [point.longitude, point.latitude],
+                },
+                properties: { score: point.hours[hour].score },
+              }))
+          : [],
+      };
+      const source = instance.getSource("corridor-weather") as
+        | maplibregl.GeoJSONSource
+        | undefined;
       if (source) source.setData(data);
       else {
         instance.addSource("corridor-weather", { type: "geojson", data });
+        instance.addLayer({
+          id: "corridor-weather-heatmap",
+          type: "heatmap",
+          source: "corridor-weather",
         // Render actual risk categories, not heatmap-density (which confuses point density with danger).
         // A broad translucent halo makes even low-risk forecasts visible on the dark basemap.
         const riskColor: maplibregl.ExpressionSpecification = [
@@ -127,10 +151,51 @@ export default function RouteMap({
           type: "circle",
           source: "corridor-weather",
           paint: {
-            "circle-color": riskColor,
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 6, 8, 13, 11, 22],
-            "circle-blur": 0.35,
-            "circle-opacity": 0.85,
+            "heatmap-weight": [
+              "interpolate",
+              ["linear"],
+              ["get", "score"],
+              0,
+              0.12,
+              1,
+              0.3,
+              2,
+              0.55,
+              3,
+              0.8,
+              4,
+              1,
+            ],
+            "heatmap-intensity": 1.2,
+            "heatmap-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              5,
+              20,
+              10,
+              42,
+              14,
+              65,
+            ],
+            "heatmap-opacity": 0.78,
+            "heatmap-color": [
+              "interpolate",
+              ["linear"],
+              ["heatmap-density"],
+              0,
+              "rgba(0,0,0,0)",
+              0.1,
+              "#287a65",
+              0.25,
+              "#e0c052",
+              0.5,
+              "#f28a43",
+              0.75,
+              "#e84d50",
+              1,
+              "#ae1c65",
+            ],
           },
         });
       }
@@ -276,8 +341,25 @@ export default function RouteMap({
   useEffect(() => {
     const instance = map.current;
     if (!instance || !instance.isStyleLoaded()) return;
-    const source = instance.getSource("corridor-weather") as maplibregl.GeoJSONSource | undefined;
-    if (source) source.setData({ type: "FeatureCollection", features: showHeatmap ? corridorPoints.filter((point) => point.hours[forecastHour]).map((point) => ({ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [point.longitude, point.latitude] }, properties: { score: point.hours[forecastHour].score } })) : [] });
+    const source = instance.getSource("corridor-weather") as
+      | maplibregl.GeoJSONSource
+      | undefined;
+    if (source)
+      source.setData({
+        type: "FeatureCollection",
+        features: showHeatmap
+          ? corridorPoints
+              .filter((point) => point.hours[forecastHour])
+              .map((point) => ({
+                type: "Feature" as const,
+                geometry: {
+                  type: "Point" as const,
+                  coordinates: [point.longitude, point.latitude],
+                },
+                properties: { score: point.hours[forecastHour].score },
+              }))
+          : [],
+      });
   }, [corridorPoints, forecastHour, showHeatmap]);
 
   useEffect(() => {

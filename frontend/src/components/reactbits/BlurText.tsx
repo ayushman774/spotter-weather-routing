@@ -417,7 +417,8 @@ const BlurText = ({
 
   useEffect(() => {
     if (phase !== "from") return undefined;
-    if (trigger === "load" || trigger === "hover" || trigger === "click") return undefined;
+    if (trigger === "load" || trigger === "hover" || trigger === "click")
+      return undefined;
     const element = ref.current;
     if (!element) return undefined;
     const observer = new IntersectionObserver(
