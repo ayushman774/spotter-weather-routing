@@ -150,42 +150,45 @@ function App() {
     result?.routes.find((route) => route.id === selectedId) ??
     result?.routes[0];
 
+  const selectedCheckpoints = selected?.checkpoints;
+
   useEffect(() => {
-    if (!result || !selected?.checkpoints?.length) {
-      setCorridorPoints([]);
-      return;
-    }
-    const checkpoints = selected.checkpoints;
+    if (!result || !selectedCheckpoints?.length) return;
+    const checkpoints = selectedCheckpoints;
     const count = Math.min(40, checkpoints.length);
     const sampled = Array.from({ length: count }, (_, index) =>
       checkpoints[Math.round(index * (checkpoints.length - 1) / Math.max(count - 1, 1))]
     );
     const controller = new AbortController();
-    setCorridorLoading(true);
-    setCorridorError("");
-    setCorridorPoints([]);
-    fetch(`${API_BASE}/api/weather/corridor/`, {
-      method: "POST",
-      signal: controller.signal,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        departure_time: toLocalIso(departure),
-        load_weight_lb: Number(weight),
-        points: sampled.map(({ latitude, longitude }) => ({ latitude, longitude })),
-      }),
-    }).then(async (response) => {
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Corridor forecast unavailable.");
-      if (!Array.isArray(data.points)) throw new Error("Invalid corridor forecast.");
-      setCorridorPoints(data.points as CorridorPoint[]);
-    }).catch((cause: unknown) => {
+    // Begin state changes asynchronously; never synchronously update state inside an effect.
+    Promise.resolve().then(() => {
       if (controller.signal.aborted) return;
-      setCorridorError(cause instanceof Error ? cause.message : "Corridor forecast unavailable.");
-    }).finally(() => {
-      if (!controller.signal.aborted) setCorridorLoading(false);
+      setCorridorLoading(true);
+      setCorridorError("");
+      setCorridorPoints([]);
+      return fetch(`${API_BASE}/api/weather/corridor/`, {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          departure_time: toLocalIso(departure),
+          load_weight_lb: Number(weight),
+          points: sampled.map(({ latitude, longitude }) => ({ latitude, longitude })),
+        }),
+      }).then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Corridor forecast unavailable.");
+        if (!Array.isArray(data.points)) throw new Error("Invalid corridor forecast.");
+        if (!controller.signal.aborted) setCorridorPoints(data.points as CorridorPoint[]);
+      }).catch((cause: unknown) => {
+        if (controller.signal.aborted) return;
+        setCorridorError(cause instanceof Error ? cause.message : "Corridor forecast unavailable.");
+      }).finally(() => {
+        if (!controller.signal.aborted) setCorridorLoading(false);
+      });
     });
     return () => controller.abort();
-  }, [result, selected?.id, departure, weight]);
+  }, [result, selectedCheckpoints, departure, weight]);
 
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
