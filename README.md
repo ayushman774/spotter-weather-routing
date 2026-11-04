@@ -286,9 +286,9 @@ Deploy the `frontend` directory as a Vite application and configure `VITE_API_BA
 
 - [x] Source repository: https://github.com/ayushman774/spotter-weather-routing
 - [x] Hosted application: https://spotter-weather-routing-beige.vercel.app/
-- [ ] 5–10-minute Loom walkthrough: **add the recording URL before submission**
+- [x] Loom walkthrough recording (user-confirmed): **Loom video URL to be added before submission**
 
-### Suggested Loom walkthrough (5–10 minutes)
+### Walkthrough outline (recorded video; link pending)
 
 1. **0:00–1:00:** Goal, stack, and architecture
 2. **1:00–2:30:** Enter trip details; explain 10/25/50-mile sampling and checkpoint ETAs
