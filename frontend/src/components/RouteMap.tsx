@@ -469,7 +469,7 @@ export default function RouteMap({
   }, [routes, selectedId, selectedCheckpointIndex]);
 
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{ position: "absolute", inset: 0, zIndex: 1 }}>
       <div
         className="route-map"
         ref={container}
