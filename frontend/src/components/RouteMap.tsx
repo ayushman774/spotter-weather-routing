@@ -338,10 +338,21 @@ export default function RouteMap({
 
   useEffect(() => {
     const instance = map.current;
-    if (!instance || !instance.isStyleLoaded()) return;
-    const source = instance.getSource("corridor-weather") as maplibregl.GeoJSONSource | undefined;
+    if (!instance) return;
     const selected = routes.find((route) => route.id === selectedId) ?? routes[0];
-    if (source) source.setData(corridorGeoJSON(selected, corridorPoints, forecastHour, showHeatmap));
+    const data = corridorGeoJSON(selected, corridorPoints, forecastHour, showHeatmap);
+    // Forecast data can arrive before MapLibre finishes loading its style and
+    // creating the corridor source. Retry on the map's load event rather than
+    // requiring the user to move the slider to trigger another React effect.
+    const update = () => {
+      const source = instance.getSource("corridor-weather") as maplibregl.GeoJSONSource | undefined;
+      if (source) source.setData(data);
+    };
+    update();
+    if (!instance.isStyleLoaded()) {
+      instance.on("load", update);
+      return () => instance.off("load", update);
+    }
   }, [routes, selectedId, corridorPoints, forecastHour, showHeatmap]);
 
   useEffect(() => {
