@@ -458,14 +458,20 @@ export default function RouteMap({
       instance.setPaintProperty(
         `route-line-${index}`,
         "line-opacity",
-        active ? 1 : 0.35,
+        active ? 1 : 0.12,
       );
       instance.setPaintProperty(
         `route-halo-${index}`,
         "line-opacity",
-        active ? 0.35 : 0.08,
+        active ? 0.35 : 0.035,
       );
     });
+    // Keep the chosen navigation line above the corridor overlay and alternatives.
+    const selectedIndex = routes.findIndex((route) => route.id === selectedId);
+    if (selectedIndex >= 0 && instance.getLayer(`route-line-${selectedIndex}`)) {
+      instance.moveLayer(`route-halo-${selectedIndex}`);
+      instance.moveLayer(`route-line-${selectedIndex}`);
+    }
     const selected =
       routes.find((route) => route.id === selectedId) ?? routes[0];
     markers.current.forEach((marker) => marker.remove());
