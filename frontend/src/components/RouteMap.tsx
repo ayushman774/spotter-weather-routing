@@ -50,6 +50,44 @@ function validCoordinates(route: Route) {
   );
 }
 
+
+// Render weather as contiguous segments following the actual route geometry.
+// Each segment uses its nearest sampled forecast; unsampled regions are estimates.
+function corridorGeoJSON(route: Route | undefined, points: CorridorPoint[], hour: number, visible: boolean) {
+  const coordinates = route ? validCoordinates(route) : [];
+  const features: { type: "Feature"; geometry: { type: "LineString"; coordinates: number[][] }; properties: { score: number } }[] = [];
+  if (!visible || coordinates.length < 2 || !points.length) {
+    return { type: "FeatureCollection" as const, features };
+  }
+  // Approximate planar distance is sufficient for nearest samples within one corridor.
+  const nearestScore = (coordinate: number[]) => {
+    let best = Infinity;
+    let score = 0;
+    for (const point of points) {
+      const dx = (coordinate[0] - point.longitude) * Math.cos(coordinate[1] * Math.PI / 180);
+      const dy = coordinate[1] - point.latitude;
+      const distance = dx * dx + dy * dy;
+      if (distance < best) {
+        best = distance;
+        score = point.hours[hour]?.score ?? 0;
+      }
+    }
+    return Math.max(0, Math.min(4, Math.round(score)));
+  };
+  // Limit feature count for large routes while retaining the underlying road shape.
+  const stride = Math.max(1, Math.ceil((coordinates.length - 1) / 1800));
+  for (let i = 0; i < coordinates.length - 1; i += stride) {
+    const segment = coordinates.slice(i, Math.min(i + stride + 1, coordinates.length));
+    const middle = segment[Math.floor(segment.length / 2)];
+    features.push({
+      type: "Feature",
+      geometry: { type: "LineString", coordinates: segment },
+      properties: { score: nearestScore(middle) },
+    });
+  }
+  return { type: "FeatureCollection" as const, features };
+}
+
 export default function RouteMap({
   routes,
   selectedId,
@@ -94,65 +132,44 @@ export default function RouteMap({
     );
 
     function drawHeatmap() {
-      const {
-        corridorPoints: points,
-        forecastHour: hour,
-        showHeatmap: visible,
-      } = heatmapRef.current;
-      const data = {
-        type: "FeatureCollection" as const,
-        features: visible
-          ? points
-              .filter((point) => point.hours[hour])
-              .map((point) => ({
-                type: "Feature" as const,
-                geometry: {
-                  type: "Point" as const,
-                  coordinates: [point.longitude, point.latitude],
-                },
-                properties: { score: point.hours[hour].score },
-              }))
-          : [],
-      };
-      const source = instance.getSource("corridor-weather") as
-        | maplibregl.GeoJSONSource
-        | undefined;
+      const { corridorPoints: points, forecastHour: hour, showHeatmap: visible } = heatmapRef.current;
+      const selected = routesRef.current.find((route) => route.id === selectedRef.current) ?? routesRef.current[0];
+      const data = corridorGeoJSON(selected, points, hour, visible);
+      const source = instance.getSource("corridor-weather") as maplibregl.GeoJSONSource | undefined;
       if (source) source.setData(data);
       else {
         instance.addSource("corridor-weather", { type: "geojson", data });
-
-        // Render actual risk categories, not heatmap-density (which confuses point density with danger).
-        // A broad translucent halo makes even low-risk forecasts visible on the dark basemap.
         const riskColor: maplibregl.ExpressionSpecification = [
           "match", ["get", "score"],
-          0, "#287a65",
-          1, "#e0c052",
-          2, "#f28a43",
-          3, "#e84d50",
-          4, "#ae1c65",
-          "#287a65",
+          0, "#287a65", 1, "#e0c052", 2, "#f28a43",
+          3, "#e84d50", 4, "#ae1c65", "#287a65",
         ];
         instance.addLayer({
           id: "corridor-weather-halo",
-          type: "circle",
+          type: "line",
           source: "corridor-weather",
+          layout: { "line-cap": "round", "line-join": "round" },
           paint: {
-            "circle-color": riskColor,
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 22, 8, 48, 11, 82],
-            "circle-blur": 0.85,
-            "circle-opacity": 0.58,
+            "line-color": riskColor,
+            "line-width": ["interpolate", ["linear"], ["zoom"], 5, 20, 8, 38, 11, 65],
+            "line-blur": 14,
+            "line-opacity": 0.55,
           },
         });
         instance.addLayer({
           id: "corridor-weather-core",
-          type: "circle",
+          type: "line",
           source: "corridor-weather",
+          layout: { "line-cap": "round", "line-join": "round" },
           paint: {
-            "circle-color": riskColor,
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 6, 8, 13, 11, 22],
-            "circle-blur": 0.35,
-            "circle-opacity": 0.85,
+            "line-color": riskColor,
+            "line-width": ["interpolate", ["linear"], ["zoom"], 5, 9, 8, 18, 11, 30],
+            "line-blur": 5,
+            "line-opacity": 0.65,
           },
+        });
+        routesRef.current.forEach((_, index) => {
+          if (instance.getLayer(`route-line-${index}`)) instance.moveLayer(`route-line-${index}`);
         });
       }
     }
@@ -297,26 +314,10 @@ export default function RouteMap({
   useEffect(() => {
     const instance = map.current;
     if (!instance || !instance.isStyleLoaded()) return;
-    const source = instance.getSource("corridor-weather") as
-      | maplibregl.GeoJSONSource
-      | undefined;
-    if (source)
-      source.setData({
-        type: "FeatureCollection",
-        features: showHeatmap
-          ? corridorPoints
-              .filter((point) => point.hours[forecastHour])
-              .map((point) => ({
-                type: "Feature" as const,
-                geometry: {
-                  type: "Point" as const,
-                  coordinates: [point.longitude, point.latitude],
-                },
-                properties: { score: point.hours[forecastHour].score },
-              }))
-          : [],
-      });
-  }, [corridorPoints, forecastHour, showHeatmap]);
+    const source = instance.getSource("corridor-weather") as maplibregl.GeoJSONSource | undefined;
+    const selected = routes.find((route) => route.id === selectedId) ?? routes[0];
+    if (source) source.setData(corridorGeoJSON(selected, corridorPoints, forecastHour, showHeatmap));
+  }, [routes, selectedId, corridorPoints, forecastHour, showHeatmap]);
 
   useEffect(() => {
     const instance = map.current;
