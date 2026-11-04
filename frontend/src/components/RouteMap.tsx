@@ -51,38 +51,46 @@ function validCoordinates(route: Route) {
 }
 
 
-// Render weather as contiguous segments following the actual route geometry.
-// Each segment uses its nearest sampled forecast; unsampled regions are estimates.
+// Render contiguous road segments with risk category and within-category weather intensity.
+// Intensity varies with actual hourly wind/rain/snow measurements, even if risk stays Low.
 function corridorGeoJSON(route: Route | undefined, points: CorridorPoint[], hour: number, visible: boolean) {
   const coordinates = route ? validCoordinates(route) : [];
-  const features: { type: "Feature"; geometry: { type: "LineString"; coordinates: number[][] }; properties: { score: number } }[] = [];
+  const features: {
+    type: "Feature";
+    geometry: { type: "LineString"; coordinates: number[][] };
+    properties: { score: number; intensity: number };
+  }[] = [];
   if (!visible || coordinates.length < 2 || !points.length) {
     return { type: "FeatureCollection" as const, features };
   }
-  // Approximate planar distance is sufficient for nearest samples within one corridor.
-  const nearestScore = (coordinate: number[]) => {
+  const nearestWeather = (coordinate: number[]) => {
     let best = Infinity;
-    let score = 0;
+    let weather: CorridorPoint["hours"][number] | undefined;
     for (const point of points) {
       const dx = (coordinate[0] - point.longitude) * Math.cos(coordinate[1] * Math.PI / 180);
       const dy = coordinate[1] - point.latitude;
       const distance = dx * dx + dy * dy;
       if (distance < best) {
         best = distance;
-        score = point.hours[hour]?.score ?? 0;
+        weather = point.hours[hour];
       }
     }
-    return Math.max(0, Math.min(4, Math.round(score)));
+    const score = Math.max(0, Math.min(4, Math.round(weather?.score ?? 0)));
+    // Relative to the first risk thresholds. These ratios affect only the
+    // intensity of the visualization, never the safety classification.
+    const wind = Math.max(0, weather?.wind_mph ?? 0) / 25;
+    const rain = Math.max(0, weather?.rain_in_per_hr ?? 0) / 0.1;
+    const snow = Math.max(0, weather?.snow_in_per_hr ?? 0) / 0.5;
+    const intensity = Math.max(0.12, Math.min(1, Math.max(wind, rain, snow)));
+    return { score, intensity };
   };
-  // Limit feature count for large routes while retaining the underlying road shape.
   const stride = Math.max(1, Math.ceil((coordinates.length - 1) / 1800));
   for (let i = 0; i < coordinates.length - 1; i += stride) {
     const segment = coordinates.slice(i, Math.min(i + stride + 1, coordinates.length));
-    const middle = segment[Math.floor(segment.length / 2)];
     features.push({
       type: "Feature",
       geometry: { type: "LineString", coordinates: segment },
-      properties: { score: nearestScore(middle) },
+      properties: nearestWeather(segment[Math.floor(segment.length / 2)]),
     });
   }
   return { type: "FeatureCollection" as const, features };
@@ -144,6 +152,10 @@ export default function RouteMap({
           0, "#287a65", 1, "#e0c052", 2, "#f28a43",
           3, "#e84d50", 4, "#ae1c65", "#287a65",
         ];
+        const intensityOpacity: maplibregl.ExpressionSpecification = [
+          "interpolate", ["linear"], ["get", "intensity"],
+          0, 0.18, 0.5, 0.45, 1, 0.85,
+        ];
         // Diffuse outer band reads as a weather corridor, not a highlighted road.
         instance.addLayer({
           id: "corridor-weather-atmosphere",
@@ -154,7 +166,7 @@ export default function RouteMap({
             "line-color": riskColor,
             "line-width": ["interpolate", ["linear"], ["zoom"], 5, 32, 8, 55, 11, 90],
             "line-blur": 20,
-            "line-opacity": 0.16,
+            "line-opacity": intensityOpacity,
           },
         });
         instance.addLayer({
@@ -166,7 +178,7 @@ export default function RouteMap({
             "line-color": riskColor,
             "line-width": ["interpolate", ["linear"], ["zoom"], 5, 20, 8, 38, 11, 65],
             "line-blur": 14,
-            "line-opacity": 0.55,
+            "line-opacity": intensityOpacity,
           },
         });
         instance.addLayer({
@@ -178,7 +190,7 @@ export default function RouteMap({
             "line-color": riskColor,
             "line-width": ["interpolate", ["linear"], ["zoom"], 5, 9, 8, 18, 11, 30],
             "line-blur": 5,
-            "line-opacity": 0.65,
+            "line-opacity": intensityOpacity,
           },
         });
         routesRef.current.forEach((_, index) => {
@@ -457,10 +469,26 @@ export default function RouteMap({
   }, [routes, selectedId, selectedCheckpointIndex]);
 
   return (
-    <div
-      className="route-map"
-      ref={container}
-      aria-label="Interactive route alternatives map"
-    />
+    <div style={{ position: "relative" }}>
+      <div
+        className="route-map"
+        ref={container}
+        aria-label="Interactive route alternatives map"
+      />
+      {showHeatmap && corridorPoints.length > 0 && (
+        <div
+          aria-live="polite"
+          style={{
+            position: "absolute", top: 14, right: 58, zIndex: 2,
+            padding: "7px 11px", borderRadius: 7,
+            background: "rgba(8, 22, 37, 0.9)",
+            color: "#b8dcff", fontSize: 12, fontWeight: 700,
+            pointerEvents: "none",
+          }}
+        >
+          WEATHER FORECAST · +{forecastHour}h
+        </div>
+      )}
+    </div>
   );
 }
