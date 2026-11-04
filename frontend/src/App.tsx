@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type CSSProperties } from "react";
+import { useRef, useState, type FormEvent, type CSSProperties } from "react";
 import {
   Alert,
   Box,
@@ -125,6 +125,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<PlanResponse | null>(null);
+  const [analysisVersion, setAnalysisVersion] = useState(0);
+  const activeRequest = useRef<AbortController | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedCheckpointIndex, setSelectedCheckpointIndex] = useState<
     number | null
@@ -136,6 +138,9 @@ function App() {
 
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
     setError("");
     setLoading(true);
     setResult(null);
@@ -143,6 +148,7 @@ function App() {
     setSelectedCheckpointIndex(null);
     try {
       const response = await fetch(`${API_BASE}/api/routes/plan/`, {
+        signal: controller.signal,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -166,16 +172,22 @@ function App() {
       }
       if (!Array.isArray(data.routes))
         throw new Error("The routing service returned an unexpected response.");
+      if (activeRequest.current !== controller) return;
       setResult(data as PlanResponse);
+      setAnalysisVersion((version) => version + 1);
       setSelectedId(data.recommended_route_id ?? data.routes[0]?.id ?? null);
     } catch (cause) {
+      if (activeRequest.current !== controller || controller.signal.aborted) return;
       setError(
         cause instanceof Error
           ? cause.message
           : "Something went wrong. Please try again.",
       );
     } finally {
-      setLoading(false);
+      if (activeRequest.current === controller) {
+        activeRequest.current = null;
+        setLoading(false);
+      }
     }
   }
 
@@ -576,7 +588,7 @@ function App() {
               <section
                 className="risk-intelligence"
                 aria-label="Selected route risk intelligence"
-                key={selected.id}
+                key={analysisVersion + "-" + selected.id}
               >
                 <div className="risk-intelligence__header">
                   <div>
@@ -684,7 +696,7 @@ function App() {
             )}
             {result && selected && (
               <CheckpointTimeline
-                key={selected.id}
+                key={analysisVersion + "-" + selected.id}
                 checkpoints={selected.checkpoints ?? []}
                 selectedCheckpointIndex={selectedCheckpointIndex}
                 onCheckpointSelect={setSelectedCheckpointIndex}
