@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type CSSProperties } from "react";
+import { useEffect, useState, type FormEvent, type CSSProperties } from "react";
 import {
   Alert,
   Box,
@@ -28,7 +28,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import "./App.css";
-import RouteMap from "./components/RouteMap";
+import RouteMap, { type CorridorPoint } from "./components/RouteMap";
 import CheckpointTimeline from "./components/CheckpointTimeline";
 import SpotlightCard from "./components/reactbits/SpotlightCard";
 import BlurText from "./components/reactbits/BlurText";
@@ -140,9 +140,52 @@ function App() {
     number | null
   >(null);
 
+  const [forecastHour, setForecastHour] = useState(0);
+  const [showHeatmap, setShowHeatmap] = useState(true);
+  const [corridorPoints, setCorridorPoints] = useState<CorridorPoint[]>([]);
+  const [corridorLoading, setCorridorLoading] = useState(false);
+  const [corridorError, setCorridorError] = useState("");
+
   const selected =
     result?.routes.find((route) => route.id === selectedId) ??
     result?.routes[0];
+
+  useEffect(() => {
+    if (!result || !selected?.checkpoints?.length) {
+      setCorridorPoints([]);
+      return;
+    }
+    const checkpoints = selected.checkpoints;
+    const count = Math.min(40, checkpoints.length);
+    const sampled = Array.from({ length: count }, (_, index) =>
+      checkpoints[Math.round(index * (checkpoints.length - 1) / Math.max(count - 1, 1))]
+    );
+    const controller = new AbortController();
+    setCorridorLoading(true);
+    setCorridorError("");
+    setCorridorPoints([]);
+    fetch(`${API_BASE}/api/weather/corridor/`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        departure_time: toLocalIso(departure),
+        load_weight_lb: Number(weight),
+        points: sampled.map(({ latitude, longitude }) => ({ latitude, longitude })),
+      }),
+    }).then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Corridor forecast unavailable.");
+      if (!Array.isArray(data.points)) throw new Error("Invalid corridor forecast.");
+      setCorridorPoints(data.points as CorridorPoint[]);
+    }).catch((cause: unknown) => {
+      if (controller.signal.aborted) return;
+      setCorridorError(cause instanceof Error ? cause.message : "Corridor forecast unavailable.");
+    }).finally(() => {
+      if (!controller.signal.aborted) setCorridorLoading(false);
+    });
+    return () => controller.abort();
+  }, [result, selected?.id, departure, weight]);
 
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -155,6 +198,7 @@ function App() {
     setResult(null);
     setSelectedId(null);
     setSelectedCheckpointIndex(null);
+    setForecastHour(0);
     try {
       const response = await fetch(`${API_BASE}/api/routes/plan/`, {
         method: "POST",
@@ -496,6 +540,9 @@ function App() {
               {result && (
                 <RouteMap
                   routes={result.routes}
+                  corridorPoints={corridorPoints}
+                  forecastHour={forecastHour}
+                  showHeatmap={showHeatmap}
                   selectedId={selected?.id ?? null}
                   selectedCheckpointIndex={selectedCheckpointIndex}
                   onCheckpointSelect={setSelectedCheckpointIndex}
@@ -588,6 +635,35 @@ function App() {
                 <span>WEATHER-AWARE · LOAD-SENSITIVE · DATA-DRIVEN</span>
               </div>
             </div>
+            {result && selected && (
+              <section className="forecast-explorer" aria-label="48-hour corridor weather forecast">
+                <div className="forecast-explorer__heading">
+                  <div>
+                    <span className="section-eyebrow">FORECAST EXPLORER</span>
+                    <h3>Weather heatmap · 0–48 hours</h3>
+                    <p>Explore hourly, load-aware weather risk along the selected route corridor. Route recommendations remain based on checkpoint arrival times.</p>
+                  </div>
+                  <label className="forecast-explorer__toggle">
+                    <input type="checkbox" checked={showHeatmap} onChange={(event) => setShowHeatmap(event.target.checked)} />
+                    Show heatmap
+                  </label>
+                </div>
+                <div className="forecast-explorer__time">
+                  <strong>+{forecastHour} hours</strong>
+                  <span>{new Date(new Date(departure).getTime() + forecastHour * 3600000).toLocaleString()}</span>
+                </div>
+                <input className="forecast-explorer__slider" aria-label="Forecast hours after departure" type="range" min={0} max={48} step={1} value={forecastHour} onChange={(event) => setForecastHour(Number(event.target.value))} disabled={corridorLoading || !corridorPoints.length} />
+                <div className="forecast-explorer__ticks"><span>0h</span><span>12h</span><span>24h</span><span>36h</span><span>48h</span></div>
+                <div className="forecast-explorer__legend">
+                  {["Low", "Moderate", "High", "Severe", "No Travel"].map((label, index) => (
+                    <span key={label}><i className={`forecast-explorer__dot forecast-explorer__dot--${index}`} />{label}</span>
+                  ))}
+                </div>
+                {corridorLoading && <p role="status">Loading hourly corridor forecasts…</p>}
+                {corridorError && <Alert severity="warning">{corridorError} The arrival-time risk assessment remains available.</Alert>}
+                {!corridorLoading && !corridorError && !!corridorPoints.length && <p className="forecast-explorer__note">Showing {corridorPoints.length} sampled corridor locations. Weather colors represent spatially blended forecast risk, not precise road closures.</p>}
+              </section>
+            )}
             {result && selected && (
               <section
                 className="risk-intelligence"
