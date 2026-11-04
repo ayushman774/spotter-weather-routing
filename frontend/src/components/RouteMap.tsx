@@ -100,13 +100,37 @@ export default function RouteMap({
       if (source) source.setData(data);
       else {
         instance.addSource("corridor-weather", { type: "geojson", data });
-        instance.addLayer({ id: "corridor-weather-heatmap", type: "heatmap", source: "corridor-weather",
+        // Render actual risk categories, not heatmap-density (which confuses point density with danger).
+        // A broad translucent halo makes even low-risk forecasts visible on the dark basemap.
+        const riskColor: maplibregl.ExpressionSpecification = [
+          "match", ["get", "score"],
+          0, "#287a65",
+          1, "#e0c052",
+          2, "#f28a43",
+          3, "#e84d50",
+          4, "#ae1c65",
+          "#287a65",
+        ];
+        instance.addLayer({
+          id: "corridor-weather-halo",
+          type: "circle",
+          source: "corridor-weather",
           paint: {
-            "heatmap-weight": ["interpolate", ["linear"], ["get", "score"], 0, 0.12, 1, 0.3, 2, 0.55, 3, 0.8, 4, 1],
-            "heatmap-intensity": 1.2,
-            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 5, 20, 10, 42, 14, 65],
-            "heatmap-opacity": 0.78,
-            "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", 0.1, "#287a65", 0.25, "#e0c052", 0.5, "#f28a43", 0.75, "#e84d50", 1, "#ae1c65"],
+            "circle-color": riskColor,
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 22, 8, 48, 11, 82],
+            "circle-blur": 0.85,
+            "circle-opacity": 0.58,
+          },
+        });
+        instance.addLayer({
+          id: "corridor-weather-core",
+          type: "circle",
+          source: "corridor-weather",
+          paint: {
+            "circle-color": riskColor,
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 6, 8, 13, 11, 22],
+            "circle-blur": 0.35,
+            "circle-opacity": 0.85,
           },
         });
       }
