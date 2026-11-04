@@ -326,6 +326,30 @@ export default function RouteMap({
         });
       });
       drawHeatmap();
+      // A single navigation layer follows the selected route's geometry.
+      // Keeping it separate prevents overlapping alternative lines or weather
+      // layers from retaining the visual highlight of a previous selection.
+      const selected = currentRoutes.find((route) => route.id === selectedRef.current) ?? currentRoutes[0];
+      const selectedCoordinates = selected ? validCoordinates(selected) : [];
+      instance.addSource("selected-navigation-route", {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: selectedCoordinates },
+        },
+      });
+      instance.addLayer({
+        id: "selected-navigation-line",
+        type: "line",
+        source: "selected-navigation-route",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": colors[0],
+          "line-width": 6,
+          "line-opacity": 1,
+        },
+      });
       highlight();
       const bounds = new maplibregl.LngLatBounds();
       currentRoutes.forEach((route) =>
@@ -345,7 +369,7 @@ export default function RouteMap({
         instance.setPaintProperty(
           `route-line-${index}`,
           "line-color",
-          active ? colors[0] : "#526477",
+          "#526477",
         );
         instance.setPaintProperty(
           `route-line-${index}`,
@@ -458,7 +482,7 @@ export default function RouteMap({
       instance.setPaintProperty(
         `route-line-${index}`,
         "line-color",
-        active ? colors[0] : "#526477",
+        "#526477",
       );
       instance.setPaintProperty(
         `route-line-${index}`,
@@ -476,14 +500,21 @@ export default function RouteMap({
         active ? 0.35 : 0.035,
       );
     });
-    // Keep the chosen navigation line above the corridor overlay and alternatives.
-    const selectedIndex = routes.findIndex((route) => route.id === selectedId);
-    if (selectedIndex >= 0 && instance.getLayer(`route-line-${selectedIndex}`)) {
-      instance.moveLayer(`route-halo-${selectedIndex}`);
-      instance.moveLayer(`route-line-${selectedIndex}`);
-    }
     const selected =
       routes.find((route) => route.id === selectedId) ?? routes[0];
+    const navigationSource = instance.getSource("selected-navigation-route") as
+      | maplibregl.GeoJSONSource
+      | undefined;
+    if (navigationSource) {
+      navigationSource.setData({
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "LineString",
+          coordinates: selected ? validCoordinates(selected) : [],
+        },
+      });
+    }
     markers.current.forEach((marker) => marker.remove());
     markers.current = [];
     checkpointMarkers.current = [];
