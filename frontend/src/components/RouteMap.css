@@ -1,0 +1,95 @@
+.route-map {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.route-map .maplibregl-canvas {
+  outline: none;
+}
+.route-map .maplibregl-ctrl-group {
+  background: #12263d;
+  border: 1px solid #31516f;
+  box-shadow: 0 8px 24px #0005;
+}
+.route-map .maplibregl-ctrl-group button {
+  filter: invert(1);
+}
+.route-map .maplibregl-popup-content {
+  background: #11273d;
+  color: #e9f2ff;
+  border: 1px solid #416381;
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 12px;
+}
+.route-map .maplibregl-popup-tip {
+  border-top-color: #11273d;
+}
+.route-checkpoint-marker {
+  width: 12px;
+  height: 12px;
+  border: 3px solid #e8f6ff;
+  background: #318fe8;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px #318fe84d;
+  cursor: pointer;
+}
+.route-endpoint-marker {
+  background: #0c2a42;
+  border: 1px solid #69c1ff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #d5f0ff;
+  box-shadow: 0 4px 15px #0008;
+}
+.map-stage.has-routes .map-stage-top,
+.map-stage.has-routes .map-stage-bottom {
+  pointer-events: none;
+  z-index: 2;
+  text-shadow: 0 1px 8px #000;
+}
+.map-stage.has-routes .map-grid,
+.map-stage.has-routes .map-glow {
+  display: none;
+}
+.map-stage.has-routes .route-map {
+  z-index: 1;
+}
+.map-stage.has-routes .map-stage-top {
+  right: 75px;
+}
+.map-stage.has-routes .map-stage-bottom {
+  background: #0a1724d9;
+  padding: 8px 12px;
+  border-radius: 6px;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  width: auto;
+}
+
+.route-checkpoint-marker--active {
+  transform: scale(1.25);
+  box-shadow:
+    0 0 0 7px #5cbdff33,
+    0 0 22px #5cbdff99 !important;
+  z-index: 2;
+}
+.checkpoint-map-popup {
+  font-family: "DM Sans", sans-serif;
+  color: #eaf5ff;
+  min-width: 150px;
+}
+.checkpoint-map-popup strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 7px;
+}
+.checkpoint-map-popup p {
+  margin: 4px 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
