@@ -120,10 +120,7 @@ export default function RouteMap({
       if (source) source.setData(data);
       else {
         instance.addSource("corridor-weather", { type: "geojson", data });
-        instance.addLayer({
-          id: "corridor-weather-heatmap",
-          type: "heatmap",
-          source: "corridor-weather",
+
         // Render actual risk categories, not heatmap-density (which confuses point density with danger).
         // A broad translucent halo makes even low-risk forecasts visible on the dark basemap.
         const riskColor: maplibregl.ExpressionSpecification = [
