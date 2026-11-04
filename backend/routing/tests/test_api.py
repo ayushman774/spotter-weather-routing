@@ -386,3 +386,43 @@ class WeatherProviderResilienceTests(SimpleTestCase):
         with self.assertRaises(WeatherProviderError):
             client.prefetch([self.checkpoint()])
         self.assertEqual(len(calls), 1)
+
+
+class GeocodingDiagnosticsTests(SimpleTestCase):
+    def test_geocoding_http_429_logs_status_without_secrets(self):
+        from routing.services.openrouteservice import (
+            OpenRouteServiceClient, RoutingProviderError,
+        )
+
+        client = OpenRouteServiceClient(api_key="test-secret-key")
+        with patch(
+            "routing.services.openrouteservice.httpx.get",
+            return_value=httpx.Response(
+                429,
+                request=httpx.Request(
+                    "GET", "https://api.openrouteservice.org/geocode/search"
+                ),
+            ),
+        ):
+            with self.assertLogs("routing.services.openrouteservice", level="WARNING") as logs:
+                with self.assertRaises(RoutingProviderError):
+                    client.geocode("Denver")
+        output = "\\n".join(logs.output)
+        self.assertIn("status=429", output)
+        self.assertNotIn("test-secret-key", output)
+        self.assertNotIn("Denver", output)
+
+    def test_geocoding_connection_failure_logs_exception_type(self):
+        from routing.services.openrouteservice import (
+            OpenRouteServiceClient, RoutingProviderError,
+        )
+
+        client = OpenRouteServiceClient(api_key="test-secret-key")
+        with patch(
+            "routing.services.openrouteservice.httpx.get",
+            side_effect=httpx.ConnectError("connection failed"),
+        ):
+            with self.assertLogs("routing.services.openrouteservice", level="WARNING") as logs:
+                with self.assertRaises(RoutingProviderError):
+                    client.geocode("Denver")
+        self.assertIn("type=ConnectError", "\\n".join(logs.output))
